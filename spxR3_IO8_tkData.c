@@ -233,6 +233,10 @@ uint8_t channel;
 
 	// Contadores
 	for ( channel = 0; channel < NRO_COUNTERS_CHANNELS; channel++) {
+		// Si el canal no esta configurado no lo muestro.
+		if ( ! strcmp ( systemVars.c_ch_name[channel], "X" ) )
+			continue;
+
 		xprintf_P(PSTR(",CNT%d=%d"), channel, pv_data_frame.counters_data[channel] );
 	}
 
@@ -366,7 +370,7 @@ uint8_t channel;
 		systemVars.imax[channel] = 20;
 		systemVars.mmin[channel] = 0;
 		systemVars.mmax[channel] = 6.0;
-		systemVars.a_ch_modo[channel] = 'L';	// Modo local
+//		systemVars.a_ch_modo[channel] = 'L';	// Modo local
 		snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("A%d\0"),channel );
 	}
 

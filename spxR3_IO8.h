@@ -57,7 +57,7 @@
 // DEFINES
 //------------------------------------------------------------------------------------
 #define SPX_FW_REV "0.0.1"
-#define SPX_FW_DATE "@ 20181030"
+#define SPX_FW_DATE "@ 20181101"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -68,6 +68,7 @@
 #define NRO_ANALOG_CHANNELS		9
 #define NRO_DIGITAL_CHANNELS	8
 #define NRO_COUNTERS_CHANNELS	2
+#define NRO_DIGITAL_OUTPUTS		8
 
 #define F_CPU (32000000UL)
 
@@ -86,6 +87,7 @@
 #define tkCounters_STACK_SIZE	512
 #define tkGprs_rx_STACK_SIZE	1024
 #define tkGprs_tx_STACK_SIZE	1024
+
 #define tkOutputs_STACK_SIZE	512
 #define tkXbee_STACK_SIZE		512
 
@@ -95,6 +97,7 @@
 #define tkCounters_TASK_PRIORITY	( tskIDLE_PRIORITY + 1 )
 #define tkGprs_rx_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
 #define tkGprs_tx_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
+
 #define tkOutputs_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
 #define tkXbee_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
 
@@ -135,7 +138,6 @@ typedef struct {
 	uint16_t counters_data[NRO_COUNTERS_CHANNELS];
 } st_data_frame;
 
-
 typedef struct {
 	// Variables de trabajo.
 
@@ -154,23 +156,23 @@ typedef struct {
 	float mmin[NRO_ANALOG_CHANNELS];
 	float mmax[NRO_ANALOG_CHANNELS];
 	char an_ch_name[NRO_ANALOG_CHANNELS][PARAMNAME_LENGTH];
-	char a_ch_modo[NRO_ANALOG_CHANNELS];
+//	char a_ch_modo[NRO_ANALOG_CHANNELS];
 
 	// Configuracion de canales digitales
 	// Niveles logicos
 	char d_ch_name[NRO_DIGITAL_CHANNELS][PARAMNAME_LENGTH];
-	char d_ch_modo[NRO_DIGITAL_CHANNELS];
+//	char d_ch_modo[NRO_DIGITAL_CHANNELS];
 
 	char c_ch_name[NRO_COUNTERS_CHANNELS][PARAMNAME_LENGTH];
+//	char d_ch_modo[NRO_COUNTERS_CHANNELS];
 
 	uint16_t timerPoll;
-	uint32_t timerDial;
 
 	uint8_t csq;
 	uint8_t dbm;
 	t_debug debug;
 
-	t_modoXbee xbee;
+//	t_modoXbee xbee;
 
 	// El checksum DEBE ser el ultimo byte del systemVars !!!!
 	uint8_t checksum;
@@ -187,9 +189,9 @@ void tkCtl(void * pvParameters);
 void tkCmd(void * pvParameters);
 void tkData(void * pvParameters);
 void tkCounters(void * pvParameters);
-
 void tkGprsRx(void * pvParameters);
 void tkGprsTx(void * pvParameters);
+
 void tkOutputs(void * pvParameters);
 void tkXbee(void * pvParameters);
 
@@ -234,7 +236,7 @@ void pub_data_load_defaults(void);
 #define WDG_CMD			0
 #define WDG_CTL			1
 
-#define WDG_DIN			2
+#define WDG_COUNT		2
 #define WDG_DAT			3
 #define WDG_OUT			4
 #define WDG_GPRSRX		5

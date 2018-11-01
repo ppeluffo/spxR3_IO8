@@ -121,15 +121,23 @@ void IO_set_DOUT(uint8_t pin)
 uint8_t data;
 int8_t xBytes;
 
+	// Control de entrada valida
+	if ( pin > 7 ) {
+		xprintf_P(PSTR("ERROR: IO_read_DIN (pin<7)!!!\r\n\0"));
+		return;
+	}
+
 	xBytes = MCP_read( MCP_GPIOB, (char *)&data, 1 );
 	if ( xBytes == -1 ) {
 		xprintf_P(PSTR("ERROR: IO_read_DIN\r\n\0"));
+		return;
 	}
 
 	// Aplico la mascara para setear el pin dado
-	data |= ( 1 << pin );
+	// En el MCP estan en orden inverso
+	data |= ( 1 << ( 7 - pin )  );
 
-	xBytes = MCP_write(MCP_GPIOB, (char *)&data, 1 );
+	xBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
 
 }
 //------------------------------------------------------------------------------------
@@ -140,15 +148,22 @@ void IO_clr_DOUT(uint8_t pin)
 uint8_t data;
 int8_t xBytes;
 
+	// Control de entrada valida
+	if ( pin > 7 ) {
+		xprintf_P(PSTR("ERROR: IO_read_DIN (pin<7)!!!\r\n\0"));
+		return;
+	}
+
 	xBytes = MCP_read( MCP_GPIOB, (char *)&data, 1 );
 	if ( xBytes == -1 ) {
 		xprintf_P(PSTR("ERROR: IO_read_DIN\r\n\0"));
+		return;
 	}
 
 	// Aplico la mascara para setear el pin dado
-	data &= ~( 1 << pin );
+	data &= ~( 1 << ( 7 - pin ) );
 
-	xBytes = MCP_write(MCP_GPIOB, (char *)&data, 1 );
+	xBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
 
 }
 //------------------------------------------------------------------------------------

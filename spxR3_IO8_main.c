@@ -37,9 +37,10 @@
  * Agrego las librerias para leer y configurar los INA.
  * Agrego la tarea de lectura de datos ( tkData ).
  * Agrego las funciones de libreria para escribir las salidas digitales.
- * El problema es que no driveo los relais.
- *
- *
+ * Agrego tkGprs.
+ * En esta version solo trabaja en modo continuo y no hay pwrSave,tdial ni redial ni proceso
+ * señales.
+ * Las salidas no se configuran en el INIT.
  */
 
 
@@ -98,7 +99,8 @@ int main( void )
 	xTaskCreate(tkCmd, "CMD", tkCmd_STACK_SIZE, NULL, tkCmd_TASK_PRIORITY,  &xHandle_tkCmd);
 	xTaskCreate(tkCounters, "CNT", tkCounters_STACK_SIZE, NULL, tkCounters_TASK_PRIORITY,  &xHandle_tkCounters);
 	xTaskCreate(tkData, "DAT", tkData_STACK_SIZE, NULL, tkData_TASK_PRIORITY,  &xHandle_tkData);
-
+	xTaskCreate(tkGprsRx, "RX", tkGprs_rx_STACK_SIZE, NULL, tkGprs_rx_TASK_PRIORITY,  &xHandle_tkGprsRx );
+	xTaskCreate(tkGprsTx, "TX", tkGprs_tx_STACK_SIZE, NULL, tkGprs_tx_TASK_PRIORITY,  &xHandle_tkGprsTx );
 
 	/* Arranco el RTOS. */
 	vTaskStartScheduler();

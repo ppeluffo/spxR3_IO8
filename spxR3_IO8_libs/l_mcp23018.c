@@ -61,7 +61,7 @@ bool init_flag = true;
 		init_flag = false;
 	}
 
-	data = 0x00; // El puerto B son outputs. No los usa.
+	data = 0xFF; // El puerto B son outputs. No los usa.
 	rdBytes = MCP_write(MCP_GPPUB, (char *)&data, 1 );
 	if ( rdBytes == -1 ) {
 		xprintf_P(PSTR("ERROR: I2C:MCP: init GPPUB\r\n\0"));

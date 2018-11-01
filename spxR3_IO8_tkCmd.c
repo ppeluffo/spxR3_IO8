@@ -40,6 +40,8 @@ static void pv_cmd_wDOUT(uint8_t value );
 static void pv_cmd_rCOUNTERS(void);
 static void pv_cmd_rwINA(uint8_t cmd_mode );
 static void pv_cmd_rANALOG(void);
+static void pv_cmd_sens12V(void);
+static void pv_cmd_rdMEMORY(void);
 
 #define WR_CMD 0
 #define RD_CMD 1
@@ -131,7 +133,7 @@ uint8_t channel;
 
 	// CONFIG
 	xprintf_P( PSTR(">Config:\r\n\0"));
-
+/*
 	switch(systemVars.xbee) {
 	case XBEE_OFF:
 		xprintf_P( PSTR("  xbee: off\r\n\0") );
@@ -143,7 +145,7 @@ uint8_t channel;
 		xprintf_P( PSTR("  xbee: slave\r\n\0") );
 		break;
 	}
-
+*/
 	switch(systemVars.debug) {
 	case DEBUG_NONE:
 		xprintf_P( PSTR("  debug: none\r\n\0") );
@@ -276,6 +278,13 @@ static void cmdWriteFunction(void)
 		return;
 	}
 
+	// SENS12V
+	// write sens12V {on|off}
+	if (!strcmp_P( strupr(argv[1]), PSTR("SENS12V\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_sens12V();
+		return;
+	}
+
 	// CMD NOT FOUND
 	xprintf_P( PSTR("ERROR\r\nCMD NOT DEFINED\r\n\0"));
 	return;
@@ -369,6 +378,12 @@ static void cmdReadFunction(void)
 	// read analog {0..8}
 	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rANALOG();
+		return;
+	}
+
+	// MEMORY
+	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_rdMEMORY();
 		return;
 	}
 
@@ -573,6 +588,7 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  mcp {regAddr} {data}\r\n\0"));
 			xprintf_P( PSTR("  ina (id) { conf (value), conf128 }\r\n\0"));
 			xprintf_P( PSTR("  set | clear {pin}\r\n\0"));
+			xprintf_P( PSTR("  sens12V {on|off}\r\n\0"));
 		}
 		return;
 	}
@@ -589,6 +605,8 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  fuses\r\n\0"));
 			xprintf_P( PSTR("  din {pin}, counters\r\n\0"));
 			xprintf_P( PSTR("  analog {0..8}\r\n\0"));
+			xprintf_P( PSTR("  memory\r\n\0"));
+
 		}
 		return;
 
@@ -619,7 +637,7 @@ static void cmdHelpFunction(void)
 
 	// HELP KILL
 	else if (!strcmp_P( strupr(argv[1]), PSTR("KILL\0")) && ( tipo_usuario == USER_TECNICO) ) {
-		xprintf_P( PSTR("-kill {data,digi,gprstx,gprsrx,outputs}\r\n\0"));
+		xprintf_P( PSTR("-kill {data,counters,gprstx,gprsrx}\r\n\0"));
 		return;
 
 	} else {
@@ -648,6 +666,43 @@ static void cmdKillFunction(void)
 
 	FRTOS_CMD_makeArgv();
 
+	// KILL DATA
+	if (!strcmp_P( strupr(argv[1]), PSTR("DATA\0"))) {
+		vTaskSuspend( xHandle_tkData );
+		pub_ctl_watchdog_kick(WDG_DAT, 0xFFFF);
+		return;
+	}
+
+	// KILL DIGITAL
+	if (!strcmp_P( strupr(argv[1]), PSTR("COUNTERS\0"))) {
+		vTaskSuspend( xHandle_tkCounters );
+		pub_ctl_watchdog_kick(WDG_COUNT, 0xFFFF);
+		return;
+	}
+
+	// KILL GPRS
+	if (!strcmp_P( strupr(argv[1]), PSTR("GPRSTX\0"))) {
+		vTaskSuspend( xHandle_tkGprsTx );
+		pub_ctl_watchdog_kick(WDG_GPRSTX, 0xFFFF);
+		// Dejo la flag de modem prendido para poder leer comandos
+		GPRS_stateVars.modem_prendido = true;
+		return;
+	}
+
+	// KILL RX
+	if (!strcmp_P( strupr(argv[1]), PSTR("GPRSRX\0"))) {
+		vTaskSuspend( xHandle_tkGprsRx );
+		pub_ctl_watchdog_kick(WDG_GPRSRX, 0xFFFF);
+		return;
+	}
+
+	// KILL XBEE
+	if (!strcmp_P( strupr(argv[1]), PSTR("XBEE\0"))) {
+		vTaskSuspend( xHandle_tkXbee );
+		pub_ctl_watchdog_kick(WDG_XBEE, 0xFFFF);
+		return;
+	}
+
 	pv_snprintfP_OK();
 	return;
 }
@@ -660,7 +715,7 @@ static void cmdPokeFunction(void)
 	// poke 1 DLG01
 
 	FRTOS_CMD_makeArgv();
-
+/*
 	switch ( atoi(argv[1])) {
 	case 0:
 		memcpy(systemVars.dlgId, argv[2], sizeof(systemVars.dlgId));
@@ -717,7 +772,7 @@ static void cmdPokeFunction(void)
 		xprintf_P(PSTR("ERR\r\n\0"));
 		return;
 	}
-
+*/
 	xprintf_P(PSTR("OK\r\n\0"));
 }
 //------------------------------------------------------------------------------------
@@ -725,7 +780,7 @@ static void cmdPeekFunction(void)
 {
 
 	FRTOS_CMD_makeArgv();
-
+/*
 	xprintf_P(PSTR("peek: \0"));
 
 	switch ( atoi(argv[1])) {
@@ -790,6 +845,7 @@ static void cmdPeekFunction(void)
 		xprintf_P(PSTR("ERR\r\n\0"));
 		break;
 	}
+*/
 }
 //------------------------------------------------------------------------------------
 static void pv_snprintfP_OK(void )
@@ -1146,6 +1202,34 @@ uint8_t channel;
 		pv_snprintfP_OK();
 		return;
 	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_cmd_sens12V(void)
+{
+	// sens12V on|off
+	if (!strcmp_P( strupr(argv[2]), PSTR("ON\0")) ) {
+		IO_set_SENS_12V_CTL();
+		pv_snprintfP_OK();
+		return;
+	}
+
+	if (!strcmp_P( strupr(argv[2]), PSTR("OFF\0")) ) {
+		IO_clr_SENS_12V_CTL();
+		pv_snprintfP_OK();
+		return;
+	}
+
+	xprintf_P( PSTR("cmd ERROR: ( write sens12V on{off} )\r\n\0"));
+	return;
+}
+//------------------------------------------------------------------------------------
+static void pv_cmd_rdMEMORY(void)
+{
+	// Leemos la memoria e imprimo los datos.
+	// El problema es que si hay muchos datos puede excederse el tiempo de watchdog y
+	// resetearse el dlg.
+	// Para esto, cada 32 registros pateo el watchdog.
 
 }
 //------------------------------------------------------------------------------------

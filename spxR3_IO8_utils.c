@@ -172,7 +172,7 @@ void pub_load_defaults(void)
 	// Xbee
 //	systemVars.xbee = XBEE_OFF;
 
-//	pub_gprs_load_defaults(modo);
+	pub_gprs_load_defaults();
 //	pub_output_load_defaults();
 
 }
