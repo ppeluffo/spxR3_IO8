@@ -16,9 +16,6 @@
 static void pv_gprs_readImei(void);
 static void pv_gprs_readCcid(void);
 
-// La tarea no puede demorar mas de 180s.
-#define WDG_GPRS_TO_PRENDER	180
-
 //------------------------------------------------------------------------------------
 bool st_gprs_prender(void)
 {
@@ -30,7 +27,7 @@ uint8_t hw_tries, sw_tries;
 bool exit_flag = bool_RESTART;
 
 
-	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_PRENDER);
+	pub_ctl_watchdog_kick(WDG_GPRSTX);
 
 	GPRS_stateVars.state = G_PRENDER;
 

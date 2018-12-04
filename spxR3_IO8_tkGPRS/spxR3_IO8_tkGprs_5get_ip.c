@@ -10,9 +10,6 @@
 static bool pv_gprs_netopen(void);
 static void pv_gprs_read_ip_assigned(void);
 
-// La tarea no puede demorar mas de 180s.
-#define WDG_GPRS_TO_IP	180
-
 //------------------------------------------------------------------------------------
 bool st_gprs_get_ip(void)
 {
@@ -25,7 +22,7 @@ bool exit_flag = bool_RESTART;
 
 // Entry:
 	GPRS_stateVars.state = G_GET_IP;
-	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_IP);
+	pub_ctl_watchdog_kick(WDG_GPRSTX);
 
 	//if ( pg_gprs_activate() ) {
 	if ( pv_gprs_netopen() ) {

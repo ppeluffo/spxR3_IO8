@@ -109,8 +109,17 @@ void pub_gprs_load_defaults(void)
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
 
 	snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
+
+#ifdef UTE
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
-	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spxR38CH/spxR38CH.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spxR3_8CH.pl\0"),SCRIPT_LENGTH);
+#endif
+
+#ifdef SPX
+	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spxR3.pl\0"),SCRIPT_LENGTH);
+#endif
+
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS DEL BUFFER DE RECEPCION DEL GPRS

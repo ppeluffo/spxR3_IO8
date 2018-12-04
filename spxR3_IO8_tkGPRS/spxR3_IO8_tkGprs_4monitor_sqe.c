@@ -7,11 +7,6 @@
 
 #include "spxR3_IO8_tkGprs.h"
 
-// Estoy en modo comando por lo que no importa tanto el wdg.
-// Le doy 15 minutos
-
-#define WDG_GPRS_TO_SQE	900
-
 //------------------------------------------------------------------------------------
 bool st_gprs_monitor_sqe(void)
 {
@@ -22,7 +17,7 @@ uint8_t MON_timer = 1;
 
 	GPRS_stateVars.state = G_MON_SQE;
 
-	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_SQE );
+	pub_ctl_watchdog_kick(WDG_GPRSTX);
 
 	while ( GPRS_stateVars.monitor_sqe ) {
 

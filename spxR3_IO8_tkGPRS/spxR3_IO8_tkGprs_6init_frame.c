@@ -20,9 +20,6 @@ static uint8_t pv_gprs_config_digitalCh(uint8_t channel);
 static uint8_t pv_gprs_config_AnalogCh(uint8_t channel);
 static uint8_t pv_gprs_config_counters(uint8_t channel);
 
-// La tarea no puede demorar mas de 180s.
-#define WDG_GPRS_TO_INIT	180
-
 //------------------------------------------------------------------------------------
 bool st_gprs_init_frame(void)
 {
@@ -40,7 +37,7 @@ bool exit_flag = false;
 
 	GPRS_stateVars.state = G_INIT_FRAME;
 
-	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_INIT );
+	pub_ctl_watchdog_kick(WDG_GPRSTX );
 
 	xprintf_P( PSTR("GPRS: iniframe.\r\n\0" ));
 
@@ -226,15 +223,17 @@ static void pv_TX_init_frame(void)
 		xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV, NVMEE_readID(), &buff_gprs_ccid );
 	}
 
-	// BODY ( 1a parte) :
-	// timerpoll,timerdial,csq
-	xCom_printf_P( fdGPRS, PSTR("&INIT&TPOLL=%d&CSQ=%d\0"), systemVars.timerPoll,systemVars.csq);
+	// init,csq,rst
+	xCom_printf_P( fdGPRS, PSTR("&INIT&CSQ=%d&RST=0x%02x\0"),systemVars.csq,wdg_resetCause);
 	// DEBUG & LOG
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("&INIT&TPOLL=%d&CSQ=%d\0"), systemVars.timerPoll,systemVars.csq );
+		xprintf_P( PSTR("&INITCSQ=%d&RST=0x%02x\0"), systemVars.csq,wdg_resetCause );
 	}
 
+#ifdef SPX
+	// En modo SPX trasmito el resto de los parametros de configuracion.
 	pv_TX_init_parameters();
+#endif
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
 	xCom_printf_P( fdGPRS, PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
@@ -503,7 +502,7 @@ char localStr[32];
 char *stringp;
 char *token;
 char *delim = ",=:><";
-char *chName;
+char *chName, *chTipo;
 
 	switch (channel) {
 	case 0:
@@ -547,7 +546,7 @@ char *chName;
 	memcpy(localStr,stringp, 31);
 
 	stringp = localStr;
-	token = strsep(&stringp,delim);	//D0
+	token = strsep(&stringp,delim);		//Dx
 
 	chName = strsep(&stringp,delim);	//name
 	pub_data_config_digital_channel( channel, chName );
@@ -565,18 +564,17 @@ quit:
 //--------------------------------------------------------------------------------------
 static uint8_t pv_gprs_config_counters(uint8_t channel)
 {
-
-//	La linea recibida es del tipo:
-//	<h1>INIT_OK:CLOCK=1402251122:TPOLL=600:TDIAL=10300:PWRM=DISC:A0=pA,0,20,0,6:A1=pB,0,20,0,10:A2=pC,0,20,0,10:D0=C,q0,1.00:D1=L,q1</h1>
-//
-// D0=C,q0,1.00:D1=L,q1
-//
+	//	La linea recibida es del tipo:
+	//	<h1>INIT_OK:CLOCK=1402251122:TPOLL=600:TDIAL=10300:PWRM=DISC:A0=pA,0,20,0,6:A1=pB,0,20,0,10:A2=pC,0,20,0,10:D0=C,q0,1.00:D1=L,q1</h1>
+	//
+	//  C0=q0,1.00:C1=q1,1.45
+	//
 uint8_t ret = 0;
 char localStr[32];
 char *stringp;
 char *token;
 char *delim = ",=:><";
-char *chName;
+char *chName, *chMagPP;
 
 	switch (channel) {
 	case 0:
@@ -592,7 +590,7 @@ char *chName;
 	}
 
 	if ( stringp == NULL ) {
-		// No viene configuracion de D0 ni de D1.
+		// No viene configuracion de C0 ni de C1.
 		ret = 0;
 		goto quit;
 	}
@@ -602,14 +600,15 @@ char *chName;
 	memcpy(localStr,stringp, 31);
 
 	stringp = localStr;
-	token = strsep(&stringp,delim);	//D0
+	token = strsep(&stringp,delim);	// C0
 
 	chName = strsep(&stringp,delim);	//name
-	pub_counter_config_channel( channel, chName );
+	chMagPP = strsep(&stringp,delim);	//magPP
+	pub_counter_config_channel( channel, chName, chMagPP );
 	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: Reconfig D%d\r\n\0"), channel);
+		xprintf_P( PSTR("GPRS: Reconfig C%d\r\n\0"), channel);
 	}
 
 quit:
@@ -622,6 +621,14 @@ static void pv_TX_init_parameters(void)
 {
 
 uint8_t i;
+
+	// BODY ( 1a parte) :
+	// TDIAL es fake para que el servidor de comms no salte.
+	xCom_printf_P( fdGPRS, PSTR("&TDIAL=0&TPOLL=%d\0"), systemVars.timerPoll );
+	// DEBUG & LOG
+	if ( systemVars.debug == DEBUG_GPRS ) {
+		xprintf_P( PSTR("&TDIAL=0&TPOLL=%d\0"), systemVars.timerPoll );
+	}
 
 	// BODY ( 2a parte) : Configuracion de canales
 	// Configuracion de canales analogicos
@@ -656,10 +663,10 @@ uint8_t i;
 		if (!strcmp_P( systemVars.c_ch_name[i], PSTR("X"))) {
 			continue;
 		}
-		xCom_printf_P( fdGPRS,PSTR("&C%d=%s\0"),i, systemVars.c_ch_name[i] );
+		xCom_printf_P( fdGPRS,PSTR("&C%d=%s,%.02f\0"),i, systemVars.c_ch_name[i], systemVars.c_ch_magpp[i] );
 		// DEBUG & LOG
 		if ( systemVars.debug ==  DEBUG_GPRS ) {
-			xprintf_P( PSTR("&C%d=%s\0"),i, systemVars.c_ch_name[i] );
+			xprintf_P( PSTR("&C%d=%s,%.02f\0"),i, systemVars.c_ch_name[i], systemVars.c_ch_magpp[i] );
 		}
 	}
 

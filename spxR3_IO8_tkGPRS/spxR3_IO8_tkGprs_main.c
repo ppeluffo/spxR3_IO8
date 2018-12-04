@@ -60,8 +60,6 @@
 
 #include "spxR3_IO8_tkGprs.h"
 
-#define WDG_GPRSRX_TIMEOUT 60
-
 //-------------------------------------------------------------------------------------
 void tkGprsTx(void * pvParameters)
 {
@@ -102,7 +100,7 @@ RESTART:
 			goto RESTART;								// con false
 		}
 
-		if ( ! st_gprs_init_frame() ) {	// Si no pude enviar exitosamente el INIT vuelvo a APAGAR.
+		if ( ! st_gprs_init_frame() ) {			// Si no pude enviar exitosamente el INIT vuelvo a APAGAR.
 			goto RESTART;
 		}
 
@@ -136,7 +134,7 @@ BaseType_t xResult;
 	for( ;; )
 	{
 
-		pub_ctl_watchdog_kick(WDG_GPRSRX, WDG_GPRSRX_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_GPRSRX);
 
 		// Si el modem NO esta prendido, espero de a 5s antes de reintentar
 		// lo que me da tiempo de entrar en tickless.

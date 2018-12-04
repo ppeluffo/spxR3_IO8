@@ -44,7 +44,7 @@ bool exit_flag = false;
 	while ( ! exit_flag )  {
 
 		// Reinicio el watchdog
-		pub_ctl_watchdog_kick(WDG_GPRSTX, ( waiting_time + 300));
+		pub_ctl_watchdog_kick(WDG_GPRSTX);
 
 		// Espero de a 5s para poder entrar en tickless.
 		vTaskDelay( (portTickType)( 5000 / portTICK_RATE_MS ) );

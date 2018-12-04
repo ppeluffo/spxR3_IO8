@@ -14,8 +14,6 @@ static void pg_gprs_APN(void);
 static void pg_gprs_CIPMODE(void);
 static void pg_gprs_DCDMODE(void);
 
-// La tarea no puede demorar mas de 180s.
-#define WDG_GPRS_TO_CONFIG	180
 //------------------------------------------------------------------------------------
 bool st_gprs_configurar(void)
 {
@@ -29,7 +27,7 @@ bool exit_flag = bool_RESTART;
 
 // Entry:
 
-	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_CONFIG);
+	pub_ctl_watchdog_kick(WDG_GPRSTX);
 
 	GPRS_stateVars.state = G_CONFIGURAR;
 

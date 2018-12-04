@@ -25,6 +25,9 @@ void initMCU(void)
 	// TERMINAL CTL PIN
 	IO_config_TERMCTL_PIN();
 
+	// BAUD RATE PIN
+	IO_config_BAUD_PIN();
+
 	// INPUTS DIGITAL
 	IO_config_PA2();
 	IO_config_PB2();
@@ -42,11 +45,6 @@ void initMCU(void)
 
 	// TICK:
 	//IO_config_TICK();
-
-	// XBEE
-	IO_config_XBEE_PWR();
-	IO_config_XBEE_SLEEP();
-	IO_config_XBEE_RESET();
 
 }
 //-----------------------------------------------------------
@@ -168,12 +166,12 @@ void pub_load_defaults(void)
 
 	pub_data_load_defaults();
 	pub_counter_load_defaults();
+	pub_digital_load_defaults();
 
-	// Xbee
-//	systemVars.xbee = XBEE_OFF;
+	systemVars.d_outputs = 0x00;
 
 	pub_gprs_load_defaults();
-//	pub_output_load_defaults();
+	pub_output_load_defaults();
 
 }
 //-----------------------------------------------------------
@@ -278,6 +276,8 @@ uint16_t i;
 	if ( stored_checksum != checksum ) {
 		return(false);
 	}
+
+	systemVars.d_outputs = 0x00;
 
 	return(true);
 }

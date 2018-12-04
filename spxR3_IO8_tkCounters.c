@@ -18,9 +18,6 @@ static bool wakeup_for_C0, wakeup_for_C1;
 
 static void pv_tkCounters_init(void);
 
-// La tarea puede estar hasta 10s en standby
-#define WDG_DIN_TIMEOUT	30
-
 //------------------------------------------------------------------------------------
 void tkCounters(void * pvParameters)
 {
@@ -41,7 +38,7 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 	for( ;; )
 	{
 
-		pub_ctl_watchdog_kick(WDG_DIN, WDG_DIN_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_COUNT);
 
 		// Cuando la interrupcion detecta un flanco, solo envia una notificacion
 		// Espero que me avisen. Si no me avisaron en 10s salgo y repito el ciclo.
@@ -68,9 +65,10 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 			}
 
 			// Espero 100ms de debounced
-			vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+			vTaskDelay( ( TickType_t)( 50 / portTICK_RATE_MS ) );
 
 			IO_clr_CLRD();		// Borro el latch llevandolo a 0.
+		//	vTaskDelay( ( TickType_t)( 1 / portTICK_RATE_MS ) );
 			IO_set_CLRD();		// Lo dejo en reposo en 1
 
 		} else   {
@@ -146,24 +144,30 @@ void pub_counters_read( uint16_t *count0, uint16_t *count1, bool clear_counters_
 
 }
 //------------------------------------------------------------------------------------
-void pub_counter_config_channel( uint8_t channel,char *s_param0 )
+bool pub_counter_config_channel( uint8_t channel,char *s_param0, char *s_param1 )
 {
+
+	// {0..1} dname magPP
+
+bool retS = false;
 
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
-	// s_param1 = TIPO
-	// s_param1 = NAME
-	// Controlo que los parametros sean correctos.
-	// Channel ID
-	if ( channel > NRO_COUNTERS_CHANNELS ) goto EXIT;
+	if ( ( channel >=  0) && ( channel < NRO_COUNTERS_CHANNELS ) ) {
 
-	// NOMBRE
-	pub_control_string(s_param0);
-	snprintf_P( systemVars.c_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_param0 );
+		// NOMBRE
+		pub_control_string(s_param0);
+		snprintf_P( systemVars.c_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_param0 );
 
-EXIT:
+		// MAGPP
+		if ( s_param1 != NULL ) { systemVars.c_ch_magpp[channel] = atof(s_param1); }
+
+		retS = true;
+	}
+
 	xSemaphoreGive( sem_SYSVars );
+	return(retS);
 
 }
 //------------------------------------------------------------------------------------
@@ -174,6 +178,7 @@ uint8_t channel;
 
 	for ( channel = 0; channel < NRO_COUNTERS_CHANNELS; channel++) {
 		snprintf_P( systemVars.c_ch_name[channel], PARAMNAME_LENGTH, PSTR("C%d\0"),channel );
+		systemVars.c_ch_magpp[channel] = 1;
 	}
 
 }

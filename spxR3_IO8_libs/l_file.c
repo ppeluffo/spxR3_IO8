@@ -329,21 +329,12 @@ int8_t xBytes;
 	pv_FAT_save(&FCB.fat);
 
 	if ( fullformat ) {
-		// Para que no salga por watchdog, apago las tareas
+		// Para que no salga por watchdog, debo apagarlo
 		vTaskSuspend( xHandle_tkData );
-		pub_ctl_watchdog_kick(WDG_DAT, 0xFFFF);
-
 		vTaskSuspend( xHandle_tkCounters );
-		pub_ctl_watchdog_kick(WDG_COUNT, 0xFFFF);
-
-//		vTaskSuspend( xHandle_tkGprsTx );
-//		pub_ctl_watchdog_kick(WDG_GPRSTX, 0xFFFF);
-
-//		vTaskSuspend( xHandle_tkGprsRx );
-//		pub_ctl_watchdog_kick(WDG_GPRSRX, 0xFFFF);
-
-//		vTaskSuspend( xHandle_tkXbee );
-//		pub_ctl_watchdog_kick(WDG_XBEE, 0xFFFF);
+		vTaskSuspend( xHandle_tkGprsTx );
+		vTaskSuspend( xHandle_tkGprsRx );
+	//	vTaskSuspend( xHandle_tkXbee );
 
 		// Borro fisicamente los registros
 		memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );

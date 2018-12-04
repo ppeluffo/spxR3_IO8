@@ -17,15 +17,12 @@ static void pv_trasmitir_dataRecord( void );
 static bool pv_procese_respuesta_server(void);
 static void pv_process_response_RESET(void);
 static uint8_t pv_process_response_OK(void);
-static void pv_process_response_OUTS(void);
+static void pv_process_response_DOUTS(void);
 
 static bool pv_check_more_Rcds4Del ( void );
 
 static void pv_tx_dataRecord(void);
 
-// La tarea se repite para cada paquete de datos. Esto no puede demorar
-// mas de 5 minutos
-#define WDG_GPRS_TO_DATA	300
 //------------------------------------------------------------------------------------
 bool st_gprs_data(void)
 {
@@ -61,7 +58,7 @@ bool trasmision_OK;
 		// Si por algun problema no puedo trasmitir, salgo asi me apago y reinicio.
 		// Si pude trasmitir o simplemente no hay datos, en modo continuo retorno TRUE.
 
-		pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_DATA );
+		pub_ctl_watchdog_kick(WDG_GPRSTX );
 
 		if ( pv_hay_datos_para_trasmitir() ) {			// Si hay datos, intento trasmitir
 
@@ -290,7 +287,7 @@ bool exit_flag = false;
 
 			if ( pub_gprs_check_response ("OUTS\0")) {
 				// El sever mando actualizacion de las salidas
-				pv_process_response_OUTS();
+				pv_process_response_DOUTS();
 			}
 
 			if ( pub_gprs_check_response ("RX_OK\0")) {
@@ -346,7 +343,7 @@ uint8_t recds_borrados = 0;
 	return(recds_borrados);
 }
 //------------------------------------------------------------------------------------
-static void pv_process_response_OUTS(void)
+static void pv_process_response_DOUTS(void)
 {
 	// Recibi algo del estilo >RX_OK:285:OUTS=1,0.
 	// Extraigo el valor de las salidas y las seteo.
@@ -356,11 +353,10 @@ char localStr[32];
 char *stringp;
 char *token;
 char *delim = ",=:><";
-char *p1,*p2;
+char *p1;
 char *p;
-uint8_t out_A,out_B;
 
-	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "OUTS");
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DOUTS");
 	if ( p == NULL ) {
 		return;
 	}
@@ -372,14 +368,23 @@ uint8_t out_A,out_B;
 	stringp = localStr;
 	token = strsep(&stringp,delim);	//OUTS
 
-	p1 = strsep(&stringp,delim);	// out0
-	p2 = strsep(&stringp,delim); 	// out1
+	p1 = strsep(&stringp,delim);	// Str. con el valor de las salidas. 0..128
 
-	out_A = atoi(p1);
-	out_B = atoi(p2);
+	systemVars.d_outputs = atoi(p1);
+
+	// Aviso a la tarea de outputs
+//	while ( xTaskNotify(xHandle_tkOutputs, TK_DOUTS_READY , eSetBits ) != pdPASS ) {
+//		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+//	}
+
+//	while ( xTaskNotifyGive(xHandle_tkOutputs ) != pdPASS ) {
+//		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+//	}
+
+//	xTaskNotifyGive( xHandle_tkOutputs );
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: processOUTS %d %d\r\n\0"), out_A, out_B);
+		xprintf_P( PSTR("GPRS: processOUTS %d\r\n\0"), systemVars.d_outputs );
 	}
 
 }
@@ -443,24 +448,34 @@ FAT_t l_fat;
 		if ( ! strcmp ( systemVars.d_ch_name[channel], "X" ) ) {
 			continue;
 		}
-		// Level ?
-		if ( ( channel == 0 ) || ( channel == 3 ) )  {
-			xCom_printf_P( fdGPRS, PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_data[channel] );
-			// DEBUG & LOG
-			if ( systemVars.debug ==  DEBUG_GPRS ) {
-				xprintf_P( PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_data[channel] );
-			}
 
-		} else {
-		// Counter ?
-			xCom_printf_P( fdGPRS, PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.counters_data[channel] );
-			// DEBUG & LOG
-			if ( systemVars.debug ==  DEBUG_GPRS ) {
-				xprintf_P( PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.counters_data[channel] );
-			}
+		xCom_printf_P( fdGPRS, PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_data[channel] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_data[channel] );
+		}
 
+	}
+
+	// Contadores
+	for ( channel = 0; channel < NRO_COUNTERS_CHANNELS; channel++) {
+		// Si el canal no esta configurado no lo muestro.
+		if ( ! strcmp ( systemVars.c_ch_name[channel], "X" ) )
+			continue;
+
+		xCom_printf_P( fdGPRS, PSTR(",%s=%d\0"), systemVars.c_ch_name[channel], pv_data_frame.counters_data[channel] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P(PSTR(",%s=%d\0"), systemVars.c_ch_name[channel], pv_data_frame.counters_data[channel] );
 		}
 	}
+
+	// DEBUG & LOG
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR("\r\n\0"));
+	}
+
+
 
 }
 //------------------------------------------------------------------------------------

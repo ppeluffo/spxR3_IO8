@@ -15,16 +15,12 @@
 static bool pv_data_guardar_BD( void );
 static void pv_data_signal_to_tkgprs(void);
 static void pv_data_read_analog(void);
-static void pv_data_read_digital(void);
-static void pv_data_read_counters(void);
 
 // VARIABLES LOCALES
 static st_data_frame pv_data_frame;
 
 uint8_t wdg_counter_data;
 
-// La tarea pasa por el mismo lugar c/timerPoll secs.
-#define WDG_DAT_TIMEOUT	 ( systemVars.timerPoll + 60 )
 //------------------------------------------------------------------------------------
 void tkData(void * pvParameters)
 {
@@ -58,13 +54,14 @@ TickType_t xLastWakeTime;
 	{
 		// El sanity chech pasa por 3 puntos.
 		if ( wdg_counter_data == 3 ) {
-			pub_ctl_watchdog_kick(WDG_DAT, WDG_DAT_TIMEOUT);
+			pub_ctl_watchdog_kick(WDG_DAT);
 			wdg_counter_data = 0;
 		} else {
 			xprintf_P( PSTR("DATA: WDG ERROR sanity check (%d)\r\n\0"), wdg_counter_data );
 		}
 
-		vTaskDelayUntil( &xLastWakeTime, waiting_ticks ); // Da el tiempo para entrar en tickless.
+		// Espero timerPoll
+		vTaskDelayUntil( &xLastWakeTime, waiting_ticks );
 
 		// Leo analog,digital,rtc,salvo en BD e imprimo.
 		pub_data_read_frame( true );	// wdg_counter_data = 1
@@ -152,23 +149,6 @@ float mag_val;
 
 }
 //------------------------------------------------------------------------------------
-static void pv_data_read_digital(void)
-{
-
-uint8_t channel;
-
-	// Leo los canales analogicos de datos.
-	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
-		pv_data_frame.digital_data[channel] = IO_read_DIN(channel);
-	}
-}
-//------------------------------------------------------------------------------------
-static void pv_data_read_counters(void)
-{
-	pub_counters_read( &pv_data_frame.counters_data[0], &pv_data_frame.counters_data[1], true );
-
-}
-//------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
 void pub_data_read_frame(bool wdg_control)
@@ -183,8 +163,8 @@ int8_t xBytes;
 
 	// Leo los canales analogicos.
 	pv_data_read_analog();
-	pv_data_read_digital();
-	pv_data_read_counters();
+	pub_digital_read_inputs( &pv_data_frame.digital_data, true );
+	pub_counters_read( &pv_data_frame.counters_data[0], &pv_data_frame.counters_data[1], true );
 
 	// Agrego el timestamp
 	xBytes = RTC_read_dtime( &pv_data_frame.rtc);
@@ -237,7 +217,7 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.c_ch_name[channel], "X" ) )
 			continue;
 
-		xprintf_P(PSTR(",CNT%d=%d"), channel, pv_data_frame.counters_data[channel] );
+		xprintf_P(PSTR(",%s=%d"), systemVars.c_ch_name[channel], pv_data_frame.counters_data[channel] );
 	}
 
 
@@ -312,10 +292,12 @@ void pub_data_config_timerpoll ( char *s_timerpoll )
 	return;
 }
 //------------------------------------------------------------------------------------
-void pub_data_config_analog_channel( uint8_t channel,char *s_aname,char *s_imin,char *s_imax,char *s_mmin,char *s_mmax )
+bool pub_data_config_analog_channel( uint8_t channel,char *s_aname,char *s_imin,char *s_imax,char *s_mmin,char *s_mmax )
 {
 
 	// Configura los canales analogicos. Es usada tanto desde el modo comando como desde el modo online por gprs.
+
+bool retS = false;
 
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
@@ -330,29 +312,10 @@ void pub_data_config_analog_channel( uint8_t channel,char *s_aname,char *s_imin,
 		if ( s_mmax != NULL ) { systemVars.mmax[channel] = atof(s_mmax); }
 	}
 
+	retS = true;
+
 	xSemaphoreGive( sem_SYSVars );
-	return;
-}
-//------------------------------------------------------------------------------------
-void pub_data_config_digital_channel( uint8_t channel,char *s_param0 )
-{
-
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
-		taskYIELD();
-
-	// s_param1 = TIPO
-	// s_param1 = NAME
-	// Controlo que los parametros sean correctos.
-	// Channel ID
-	if ( channel > 7 ) goto EXIT;
-
-	// NOMBRE
-	pub_control_string(s_param0);
-	snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_param0 );
-
-EXIT:
-	xSemaphoreGive( sem_SYSVars );
-
+	return(retS);
 }
 //------------------------------------------------------------------------------------
 void pub_data_load_defaults(void)
@@ -373,11 +336,6 @@ uint8_t channel;
 //		systemVars.a_ch_modo[channel] = 'L';	// Modo local
 		snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("A%d\0"),channel );
 	}
-
-	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("D%d\0"),channel );
-	}
-
 }
 //------------------------------------------------------------------------------------
 

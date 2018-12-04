@@ -142,6 +142,6 @@ to exclude the API function. */
 
 #define configUSE_TICKLESS_IDLE	2
 #define portSUPPRESS_TICKS_AND_SLEEP( xIdleTime ) vApplicationSleep( xIdleTime )
-#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP 1500
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP 3500
 
 #endif /* FREERTOS_CONFIG_H */

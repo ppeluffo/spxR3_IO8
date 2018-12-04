@@ -8,6 +8,8 @@
 #include "FRTOS-CMD.h"
 
 #include "spxR3_IO8.h"
+#include "spxR3_IO8_tkGprs.h"
+
 
 //----------------------------------------------------------------------------------------
 // FUNCIONES DE USO PRIVADO
@@ -34,19 +36,18 @@ static void pv_cmd_rwNVMEE(uint8_t cmd_mode );
 static void pv_cmd_rwRTC(uint8_t cmd_mode );
 static void pv_cmd_rwRTC_SRAM(uint8_t cmd_mode );
 static void pv_cmd_rwMCP(uint8_t cmd_mode );
-static void pub_ctl_read_fuses(void);
 static void pv_cmd_rwDIN(void );
-static void pv_cmd_wDOUT(uint8_t value );
+static void pv_cmd_wDOUTPUT( void );
 static void pv_cmd_rCOUNTERS(void);
 static void pv_cmd_rwINA(uint8_t cmd_mode );
 static void pv_cmd_rANALOG(void);
 static void pv_cmd_sens12V(void);
 static void pv_cmd_rdMEMORY(void);
+static void pv_cmd_rwGPRS(uint8_t cmd_mode );
+static void pv_cmd_read_fuses(void);
 
 #define WR_CMD 0
 #define RD_CMD 1
-
-#define WDG_CMD_TIMEOUT	60
 
 static usuario_t tipo_usuario;
 RtcTimeType_t rtc;
@@ -91,11 +92,10 @@ uint8_t ticks;
 	for( ;; )
 	{
 
-		pub_ctl_watchdog_kick(WDG_CMD, WDG_CMD_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_CMD);
 
 		c = '\0';	// Lo borro para que luego del un CR no resetee siempre el timer.
 		// el read se bloquea 50ms. lo que genera la espera.
-		//while ( CMD_read( (char *)&c, 1 ) == 1 ) {
 		while ( frtos_read( fdTERM, (char *)&c, 1 ) == 1 ) {
 			FRTOS_CMD_process(c);
 		}
@@ -107,8 +107,14 @@ static void cmdStatusFunction(void)
 
 FAT_t l_fat;
 uint8_t channel;
+uint8_t recSize;
 
 	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
+#ifdef UTE
+	xprintf_P( PSTR("Compilacion: UTE\r\n\0") );
+#else
+	xprintf_P( PSTR("Compilacion: SPX\r\n\0") );
+#endif
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
 
 	// SIGNATURE ID
@@ -121,8 +127,9 @@ uint8_t channel;
 	xprintf_P( PSTR("dlgid: %s\r\n\0"), systemVars.dlgId );
 
 	// Memoria
+	recSize = sizeof(st_data_frame);
 	FAT_read(&l_fat);
-	xprintf_P( PSTR("memory: wrPtr=%d,rdPtr=%d,delPtr=%d,r4wr=%d,r4rd=%d,r4del=%d \r\n\0"), l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR,l_fat.rcds4wr,l_fat.rcds4rd,l_fat.rcds4del );
+	xprintf_P( PSTR("memory: RCZ=%d, wrPtr=%d,rdPtr=%d,delPtr=%d,r4wr=%d,r4rd=%d,r4del=%d \r\n\0"), recSize, l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR,l_fat.rcds4wr,l_fat.rcds4rd,l_fat.rcds4del );
 
 	// SERVER
 	xprintf_P( PSTR(">Server:\r\n\0"));
@@ -131,21 +138,40 @@ uint8_t channel;
 	xprintf_P( PSTR("  server script: %s\r\n\0"), systemVars.serverScript );
 	xprintf_P( PSTR("  passwd: %s\r\n\0"), systemVars.passwd );
 
-	// CONFIG
-	xprintf_P( PSTR(">Config:\r\n\0"));
-/*
-	switch(systemVars.xbee) {
-	case XBEE_OFF:
-		xprintf_P( PSTR("  xbee: off\r\n\0") );
+	// MODEM
+	xprintf_P( PSTR(">Modem:\r\n\0"));
+	xprintf_P( PSTR("  signalQ: csq=%d, dBm=%d\r\n\0"), systemVars.csq, systemVars.dbm );
+	xprintf_P( PSTR("  ip address: %s\r\n\0"), systemVars.dlg_ip_address);
+
+	// GPRS STATE
+	switch (GPRS_stateVars.state) {
+	case G_ESPERA_APAGADO:
+		xprintf_P( PSTR("  state: await_off\r\n"));
 		break;
-	case XBEE_MASTER:
-		xprintf_P( PSTR("  xbee: master\r\n\0") );
+	case G_PRENDER:
+		xprintf_P( PSTR("  state: prendiendo\r\n"));
 		break;
-	case XBEE_SLAVE:
-		xprintf_P( PSTR("  xbee: slave\r\n\0") );
+	case G_CONFIGURAR:
+		xprintf_P( PSTR("  state: configurando\r\n"));
+		break;
+	case G_MON_SQE:
+		xprintf_P( PSTR("  state: mon_sqe\r\n"));
+		break;
+	case G_GET_IP:
+		xprintf_P( PSTR("  state: ip\r\n"));
+		break;
+	case G_INIT_FRAME:
+		xprintf_P( PSTR("  state: init frame\r\n"));
+		break;
+	case G_DATA:
+		xprintf_P( PSTR("  state: data\r\n"));
+		break;
+	default:
+		xprintf_P( PSTR("  state: ERROR\r\n"));
 		break;
 	}
-*/
+	// CONFIG
+	xprintf_P( PSTR(">Config:\r\n\0"));
 	switch(systemVars.debug) {
 	case DEBUG_NONE:
 		xprintf_P( PSTR("  debug: none\r\n\0") );
@@ -156,15 +182,15 @@ uint8_t channel;
 	case DEBUG_COUNT:
 		xprintf_P( PSTR("  debug: counters\r\n\0") );
 		break;
-	case DEBUG_XBEE:
-		xprintf_P( PSTR("  debug: xbee\r\n\0") );
-		break;
 	default:
 		xprintf_P( PSTR("  debug: ???\r\n\0") );
 		break;
 	}
 
 	xprintf_P( PSTR("  timerPoll: [%d s]/%d\r\n\0"),systemVars.timerPoll, pub_ctl_readTimeToNextPoll() );
+
+	// Salidas
+	xprintf_P( PSTR("  outputs: 0x%02x\r\n\0"),systemVars.d_outputs );
 
 	// Configuracion de canales analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
@@ -173,12 +199,12 @@ uint8_t channel;
 
 	// Configuracion de canales digitales
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		xprintf_P( PSTR("  d%d( ) | %s]\r\n\0"),channel, systemVars.d_ch_name[channel] );
+		xprintf_P( PSTR("  d%d( ) %s\r\n\0"),channel, systemVars.d_ch_name[channel] );
 	}
 
 	// Configuracion de canales contadores
 	for ( channel = 0; channel < NRO_COUNTERS_CHANNELS; channel++) {
-		xprintf_P( PSTR("  c%d( ) | %s]\r\n\0"),channel, systemVars.c_ch_name[channel] );
+		xprintf_P( PSTR("  c%d( ) [ %s, %0.2f ]\r\n\0"),channel, systemVars.c_ch_name[channel], systemVars.c_ch_magpp [channel] );
 	}
 
 	// Valores actuales:
@@ -195,7 +221,7 @@ static void cmdResetFunction(void)
 	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0"))) {
 
 		// Nadie debe usar la memoria !!!
-		pub_ctl_watchdog_kick(WDG_CMD, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_CMD);
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("SOFT\0"))) {
 			FF_format(false );
@@ -209,10 +235,11 @@ static void cmdResetFunction(void)
 
 	cmdClearScreen();
 
+	CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
+
 	while(1)
 		;
 
-	//CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
 
 
 }
@@ -257,17 +284,9 @@ static void cmdWriteFunction(void)
 		return;
 	}
 
-	// SET
-	// write set {pin}
-	if (!strcmp_P( strupr(argv[1]), PSTR("SET\0")) && ( tipo_usuario == USER_TECNICO) ) {
-		pv_cmd_wDOUT(1);
-		return;
-	}
-
-	// CLEAR
-	// write clear {pin}
-	if (!strcmp_P( strupr(argv[1]), PSTR("CLEAR\0")) && ( tipo_usuario == USER_TECNICO) ) {
-		pv_cmd_wDOUT(0);
+	// write output {0..7} {set | clear}
+	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUT\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_wDOUTPUT();
 		return;
 	}
 
@@ -285,6 +304,29 @@ static void cmdWriteFunction(void)
 		return;
 	}
 
+	// GPRS
+	// write gprs pwr|sw|rts {on|off}
+	// write gprs cmd {atcmd}
+	if (!strcmp_P( strupr(argv[1]), PSTR("GPRS\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_rwGPRS(WR_CMD);
+		return;
+	}
+
+	// CLRD
+	// write clrd {0|1}
+	if (!strcmp_P( strupr(argv[1]), PSTR("CLRD\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		if ( atoi( argv[2]) == 0 ) { IO_clr_CLRD(); }
+		if ( atoi( argv[2]) == 1 ) { IO_set_CLRD(); }
+		return;
+	}
+
+	// write dout nnn
+	if (!strcmp_P( strupr(argv[1]), PSTR("DOUT\0")) ) {
+		systemVars.d_outputs = atoi( argv[2]);
+
+		return;
+	}
+
 	// CMD NOT FOUND
 	xprintf_P( PSTR("ERROR\r\nCMD NOT DEFINED\r\n\0"));
 	return;
@@ -297,7 +339,7 @@ static void cmdReadFunction(void)
 
 	// FUSES
  	if (!strcmp_P( strupr(argv[1]), PSTR("FUSES\0"))) {
- 		pub_ctl_read_fuses();
+ 		pv_cmd_read_fuses();
  		return;
  	}
 
@@ -387,6 +429,21 @@ static void cmdReadFunction(void)
 		return;
 	}
 
+	// GPRS
+	// read gprs (rsp,cts,dcd,ri)
+	if (!strcmp_P( strupr(argv[1]), PSTR("GPRS\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_rwGPRS(RD_CMD);
+		return;
+	}
+
+	// FRAME
+	// read frame
+	if (!strcmp_P( strupr(argv[1]), PSTR("FRAME\0")) ) {
+		pub_data_read_frame( false );
+		pub_data_print_frame( false );
+		return;
+	}
+
 	// CMD NOT FOUND
 	xprintf_P( PSTR("ERROR\r\nCMD NOT DEFINED\r\n\0"));
 	return;
@@ -446,9 +503,6 @@ bool retS = false;
 			retS = true;
 		} else if (!strcmp_P( strupr(argv[2]), PSTR("COUNT\0"))) {
 			systemVars.debug = DEBUG_COUNT;
-			retS = true;
-		} else if (!strcmp_P( strupr(argv[2]), PSTR("XBEE\0"))) {
-			systemVars.debug = DEBUG_XBEE;
 			retS = true;
 		} else {
 			retS = false;
@@ -543,22 +597,22 @@ bool retS = false;
 
 	// config analog {0..8} aname imin imax mmin mmax
 	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0")) ) {
-		pub_data_config_analog_channel( atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7] );
-		pv_snprintfP_OK();
+		retS = pub_data_config_analog_channel( atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7] );
+		retS ? pv_snprintfP_OK() : pv_snprintfP_ERR();
 		return;
 	}
 
-	// config digital {0..7} dname
+	// config digital {0..%d} {N|T} dname
 	if (!strcmp_P( strupr(argv[1]), PSTR("DIGITAL\0")) ) {
-		pub_data_config_digital_channel( atoi(argv[2]), argv[3] );
-		pv_snprintfP_OK();
+		retS = pub_data_config_digital_channel( atoi(argv[2]), argv[3] );
+		retS ? pv_snprintfP_OK() : pv_snprintfP_ERR();
 		return;
 	}
 
-	// config counter {0..2} dname
+	// config counter {0..1} cname magPP
 	if (!strcmp_P( strupr(argv[1]), PSTR("COUNTER\0")) ) {
-		pub_counter_config_channel( atoi(argv[2]), argv[3] );
-		pv_snprintfP_OK();
+		retS = pub_counter_config_channel( atoi(argv[2]), argv[3], argv[4] );
+		retS ? pv_snprintfP_OK() : pv_snprintfP_ERR();
 		return;
 	}
 
@@ -587,8 +641,12 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {string}\r\n\0"));
 			xprintf_P( PSTR("  mcp {regAddr} {data}\r\n\0"));
 			xprintf_P( PSTR("  ina (id) { conf (value), conf128 }\r\n\0"));
-			xprintf_P( PSTR("  set | clear {pin}\r\n\0"));
+			xprintf_P( PSTR("  output {0..7} {set | clear}\r\n\0"));
+			xprintf_P( PSTR("  dout {0..255}\r\n\0"));
+			xprintf_P( PSTR("  clrd {0|1}\r\n\0"));
 			xprintf_P( PSTR("  sens12V {on|off}\r\n\0"));
+			xprintf_P( PSTR("  gprs (pwr|sw|cts|dtr) {on|off}\r\n\0"));
+			xprintf_P( PSTR("      cmd {atcmd}\r\n\0"));
 		}
 		return;
 	}
@@ -603,9 +661,11 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  mcp {regAddr}\r\n\0"));
 			xprintf_P( PSTR("  ina {id} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
 			xprintf_P( PSTR("  fuses\r\n\0"));
+			xprintf_P( PSTR("  frame\r\n\0"));
 			xprintf_P( PSTR("  din {pin}, counters\r\n\0"));
 			xprintf_P( PSTR("  analog {0..8}\r\n\0"));
 			xprintf_P( PSTR("  memory\r\n\0"));
+			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
 
 		}
 		return;
@@ -624,15 +684,14 @@ static void cmdHelpFunction(void)
 	// HELP CONFIG
 	else if (!strcmp_P( strupr(argv[1]), PSTR("CONFIG\0"))) {
 		xprintf_P( PSTR("-config\r\n\0"));
-		xprintf_P( PSTR("  debug {none,gprs,count,range, xbee}\r\n\0"));
+		xprintf_P( PSTR("  debug {none,gprs,count }\r\n\0"));
 		xprintf_P( PSTR("  analog {0..%d} aname imin imax mmin mmax\r\n\0"),( NRO_ANALOG_CHANNELS - 1 ) );
 		xprintf_P( PSTR("  digital {0..%d} dname\r\n\0"), ( NRO_DIGITAL_CHANNELS - 1 ) );
-		xprintf_P( PSTR("  counter {0..%d} dname\r\n\0"), ( NRO_COUNTERS_CHANNELS - 1 ) );
+		xprintf_P( PSTR("  counter {0..%d} cname magPP\r\n\0"), ( NRO_COUNTERS_CHANNELS - 1 ) );
 		xprintf_P( PSTR("  timerpoll\r\n\0"));
 		xprintf_P( PSTR("  default\r\n\0"));
 		xprintf_P( PSTR("  save\r\n\0"));
 		return;
-
 	}
 
 	// HELP KILL
@@ -669,21 +728,21 @@ static void cmdKillFunction(void)
 	// KILL DATA
 	if (!strcmp_P( strupr(argv[1]), PSTR("DATA\0"))) {
 		vTaskSuspend( xHandle_tkData );
-		pub_ctl_watchdog_kick(WDG_DAT, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_DAT);
 		return;
 	}
 
 	// KILL DIGITAL
 	if (!strcmp_P( strupr(argv[1]), PSTR("COUNTERS\0"))) {
 		vTaskSuspend( xHandle_tkCounters );
-		pub_ctl_watchdog_kick(WDG_COUNT, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_COUNT);
 		return;
 	}
 
 	// KILL GPRS
 	if (!strcmp_P( strupr(argv[1]), PSTR("GPRSTX\0"))) {
 		vTaskSuspend( xHandle_tkGprsTx );
-		pub_ctl_watchdog_kick(WDG_GPRSTX, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_GPRSTX);
 		// Dejo la flag de modem prendido para poder leer comandos
 		GPRS_stateVars.modem_prendido = true;
 		return;
@@ -692,14 +751,7 @@ static void cmdKillFunction(void)
 	// KILL RX
 	if (!strcmp_P( strupr(argv[1]), PSTR("GPRSRX\0"))) {
 		vTaskSuspend( xHandle_tkGprsRx );
-		pub_ctl_watchdog_kick(WDG_GPRSRX, 0xFFFF);
-		return;
-	}
-
-	// KILL XBEE
-	if (!strcmp_P( strupr(argv[1]), PSTR("XBEE\0"))) {
-		vTaskSuspend( xHandle_tkXbee );
-		pub_ctl_watchdog_kick(WDG_XBEE, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_GPRSRX);
 		return;
 	}
 
@@ -1012,39 +1064,6 @@ char *p;
 
 }
 //------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------
-static void pub_ctl_read_fuses(void)
-{
-	// Lee los fuses.
-
-uint8_t fuse0,fuse1,fuse2,fuse4,fuse5;
-
-	fuse0 = nvm_fuses_read(0x00);	// FUSE0
-	xprintf_P( PSTR("FUSE0=0x%x\r\n\0"),fuse0);
-
-	fuse1 = nvm_fuses_read(0x01);	// FUSE1
-	xprintf_P( PSTR("FUSE1=0x%x\r\n\0"),fuse1);
-
-	fuse2 = nvm_fuses_read(0x02);	// FUSE2
-	xprintf_P( PSTR("FUSE2=0x%x\r\n\0"),fuse2);
-
-	fuse4 = nvm_fuses_read(0x04);	// FUSE4
-	xprintf_P( PSTR("FUSE4=0x%x\r\n\0"),fuse4);
-
-	fuse5 = nvm_fuses_read(0x05);	// FUSE5
-	xprintf_P( PSTR("FUSE5=0x%x\r\n\0"),fuse5);
-
-	if ( (fuse0 != 0xFF) || ( fuse1 != 0xAA) || (fuse2 != 0xFD) || (fuse4 != 0xF5) || ( fuse5 != 0xD4) ) {
-		xprintf_P( PSTR("FUSES ERROR !!!.\r\n\0"));
-		xprintf_P( PSTR("Los valores deben ser: FUSE0=0xFF,FUSE1=0xAA,FUSE2=0xFD,FUSE4=0xF5,FUSE5=0xD4\r\n\0"));
-		xprintf_P( PSTR("Deben reconfigurarse !!.\r\n\0"));
-		pv_snprintfP_ERR();
-		return;
-	}
-	pv_snprintfP_OK();
-	return;
-}
-//------------------------------------------------------------------------------------
 static void pv_cmd_rwMCP(uint8_t cmd_mode )
 {
 
@@ -1085,19 +1104,34 @@ uint16_t pinValue;
 	return;
 }
 //------------------------------------------------------------------------------------
-static void pv_cmd_wDOUT(uint8_t value )
+static void pv_cmd_wDOUTPUT(void)
 {
+	// write output {0..7} {set | clear}
 	// Escribe un 0 o un 1 en una de las salidas digitales.
 
 uint8_t pin;
 
 	pin = atoi(argv[2]);
 
-	if ( value == 0 ) {
-		IO_clr_DOUT(pin);
-	} else {
+	if (!strcmp_P( strupr(argv[3]), PSTR("SET\0"))) {
 		IO_set_DOUT(pin);
+		// Actualizo el systemVars.
+		systemVars.d_outputs |= ( 1 << ( 7 - pin )  );
+
+		pv_snprintfP_OK();
+		return;
 	}
+
+	if (!strcmp_P( strupr(argv[3]), PSTR("CLEAR\0"))) {
+		IO_clr_DOUT(pin);
+		// Actualizo el systemVars.
+		systemVars.d_outputs &= ~( 1 << ( 7 - pin ) );
+
+		pv_snprintfP_OK();
+		return;
+	}
+
+	pv_snprintfP_ERR();
 
 }
 //------------------------------------------------------------------------------------
@@ -1231,6 +1265,153 @@ static void pv_cmd_rdMEMORY(void)
 	// resetearse el dlg.
 	// Para esto, cada 32 registros pateo el watchdog.
 
+}
+//------------------------------------------------------------------------------------
+static void pv_cmd_rwGPRS(uint8_t cmd_mode )
+{
+
+uint8_t pin;
+//char *p;
+
+	if ( cmd_mode == WR_CMD ) {
+
+		// write gprs (pwr|sw|rts|dtr) {on|off}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("PWR\0")) ) {
+			if (!strcmp_P( strupr(argv[3]), PSTR("ON\0")) ) {
+				IO_set_GPRS_PWR(); pv_snprintfP_OK(); return;
+			}
+			if (!strcmp_P( strupr(argv[3]), PSTR("OFF\0")) ) {
+				IO_clr_GPRS_PWR(); pv_snprintfP_OK(); return;
+			}
+			pv_snprintfP_ERR();
+			return;
+		}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("SW\0")) ) {
+			if (!strcmp_P( strupr(argv[3]), PSTR("ON\0")) ) {
+				IO_set_GPRS_SW();
+				pv_snprintfP_OK(); return;
+			}
+			if (!strcmp_P( strupr(argv[3]), PSTR("OFF\0")) ) {
+				IO_clr_GPRS_SW(); pv_snprintfP_OK(); return;
+			}
+			pv_snprintfP_ERR();
+			return;
+		}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("CTS\0")) ) {
+			if (!strcmp_P( strupr(argv[3]), PSTR("ON\0")) ) {
+				IO_set_GPRS_CTS(); pv_snprintfP_OK(); return;
+			}
+			if (!strcmp_P( strupr(argv[3]), PSTR("OFF\0")) ) {
+				IO_clr_GPRS_CTS(); pv_snprintfP_OK(); return;
+			}
+			pv_snprintfP_ERR();
+			return;
+		}
+
+		// Por ahora cableo DTR a CTS.
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("DTR\0")) ) {
+			if (!strcmp_P( strupr(argv[3]), PSTR("ON\0")) ) {
+				IO_set_GPRS_CTS(); pv_snprintfP_OK(); return;
+			}
+			if (!strcmp_P( strupr(argv[3]), PSTR("OFF\0")) ) {
+				IO_clr_GPRS_CTS(); pv_snprintfP_OK(); return;
+			}
+			pv_snprintfP_ERR();
+			return;
+		}
+
+		// ATCMD
+		// // write gprs cmd {atcmd}
+		if (!strcmp_P(strupr(argv[2]), PSTR("CMD\0"))) {
+			xprintf_P( PSTR("%s\r\0"),argv[3] );
+
+			pub_gprs_flush_RX_buffer();
+			xCom_printf_P( fdGPRS,PSTR("%s\r\0"),argv[3] );
+
+			xprintf_P( PSTR("sent->%s\r\n\0"),argv[3] );
+			return;
+		}
+
+		return;
+	}
+
+	if ( cmd_mode == RD_CMD ) {
+		// read gprs (rsp,cts,dcd,ri)
+
+			// ATCMD
+			// read gprs rsp
+			if (!strcmp_P(strupr(argv[2]), PSTR("RSP\0"))) {
+				pub_gprs_print_RX_Buffer();
+				//p = pub_gprs_rxbuffer_getPtr();
+				//xprintf_P( PSTR("rx->%s\r\n\0"),p );
+				return;
+			}
+
+			// DCD
+			if (!strcmp_P( strupr(argv[2]), PSTR("DCD\0")) ) {
+				pin = IO_read_DCD();
+				xprintf_P( PSTR("DCD=%d\r\n\0"),pin);
+				pv_snprintfP_OK();
+				return;
+			}
+
+			// RI
+			if (!strcmp_P( strupr(argv[2]), PSTR("RI\0")) ) {
+				pin = IO_read_RI();
+				xprintf_P( PSTR("RI=%d\r\n\0"),pin);
+				pv_snprintfP_OK();
+				return;
+			}
+
+			// RTS
+			if (!strcmp_P( strupr(argv[2]), PSTR("RTS\0")) ) {
+				pin = IO_read_RTS();
+				xprintf_P( PSTR("RTS=%d\r\n\0"),pin);
+				pv_snprintfP_OK();
+				return;
+			}
+
+
+			pv_snprintfP_ERR();
+			return;
+	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_cmd_read_fuses(void)
+{
+	// Lee los fuses.
+
+uint8_t fuse0,fuse1,fuse2,fuse4,fuse5;
+
+	fuse0 = nvm_fuses_read(0x00);	// FUSE0
+	xprintf_P( PSTR("FUSE0=0x%x\r\n\0"),fuse0);
+
+	fuse1 = nvm_fuses_read(0x01);	// FUSE1
+	xprintf_P( PSTR("FUSE1=0x%x\r\n\0"),fuse1);
+
+	fuse2 = nvm_fuses_read(0x02);	// FUSE2
+	xprintf_P( PSTR("FUSE2=0x%x\r\n\0"),fuse2);
+
+	fuse4 = nvm_fuses_read(0x04);	// FUSE4
+	xprintf_P( PSTR("FUSE4=0x%x\r\n\0"),fuse4);
+
+	fuse5 = nvm_fuses_read(0x05);	// FUSE5
+	xprintf_P( PSTR("FUSE5=0x%x\r\n\0"),fuse5);
+
+	if ( (fuse0 != 0xFF) || ( fuse1 != 0xAA) || (fuse2 != 0xFD) || (fuse4 != 0xF5) || ( fuse5 != 0xD6) ) {
+		xprintf_P( PSTR("FUSES ERROR !!!.\r\n\0"));
+		xprintf_P( PSTR("Los valores deben ser: FUSE0=0xFF,FUSE1=0xAA,FUSE2=0xFD,FUSE4=0xF5,FUSE5=0xD6\r\n\0"));
+		xprintf_P( PSTR("Deben reconfigurarse !!.\r\n\0"));
+		pv_snprintfP_ERR();
+		return;
+	}
+	pv_snprintfP_OK();
+	return;
 }
 //------------------------------------------------------------------------------------
 
