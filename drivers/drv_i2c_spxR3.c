@@ -178,14 +178,16 @@ uint8_t	reintentos = I2C_MAXTRIES;
 
 	while ( reintentos-- > 0 ) {
 
-		bus_status = TWIE.MASTER.STATUS; //& TWI_MASTER_BUSSTATE_gm;
+		//bus_status = TWIE.MASTER.STATUS; //& TWI_MASTER_BUSSTATE_gm;
+		bus_status = TWIE.MASTER.STATUS & 0xCF; 	//& TWI_MASTER_BUSSTATE_gm;
 
-#ifdef DEBUG_I2C
+#ifdef DEBUG_I2Cg
 		//	xprintf_P( PSTR("drv_i2c: I2C_BUSIDLE(%d): 0x%02x\r\n\0"),reintentos,TWIE.MASTER.STATUS );
 #endif
 
 		if (  ( bus_status == TWI_MASTER_BUSSTATE_IDLE_gc ) || ( bus_status == TWI_MASTER_BUSSTATE_OWNER_gc ) ) {
 			return(true);
+
 		} else {
 			// El status esta indicando errores. Debo limpiarlos antes de usar la interface.
 			if ( (bus_status & TWI_MASTER_ARBLOST_bm) != 0 ) {
@@ -209,6 +211,7 @@ uint8_t	reintentos = I2C_MAXTRIES;
 	// No pude pasarlo a IDLE: Error !!!
 	//	xprintf_P( PSTR("drv_i2c: I2C_BUSIDLE ERROR!!: 0x%02x\r\n\0"),TWIE.MASTER.STATUS );
 	return(false);
+
 }
 //------------------------------------------------------------------------------------
 bool pvI2C_write_slave_address(const uint8_t devAddress)
