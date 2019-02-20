@@ -161,7 +161,7 @@ void RTC32_ToscEnable( bool use1khz )
 void pub_load_defaults(void)
 {
 
-	strncpy_P(systemVars.dlgId, PSTR("SPX001\0"),DLGID_LENGTH);
+	strncpy_P(systemVars.dlgId, PSTR("DEFAULT\0"),DLGID_LENGTH);
 	systemVars.debug = DEBUG_NONE;
 
 	pub_data_load_defaults();

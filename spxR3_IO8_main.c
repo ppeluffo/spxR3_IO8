@@ -129,13 +129,13 @@ int main( void )
 	frtos_open(fdI2C, 100 );
 
 	//  Configuro el puerto serial de la terminal
-	if ( IO_read_BAUD_PIN() == 0 ) {
+//	if ( IO_read_BAUD_PIN() == 0 ) {
 		// USB
 		frtos_open(fdTERM, 115200 );
-	} else {
+//	} else {
 		// BLUETOOTH
-		frtos_open(fdTERM, 9600 );
-	}
+//		frtos_open(fdTERM, 9600 );
+//	}
 
 	// Creo los semaforos
 	sem_SYSVars = xSemaphoreCreateMutexStatic( &SYSVARS_xMutexBuffer );

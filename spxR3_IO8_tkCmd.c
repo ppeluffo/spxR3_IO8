@@ -110,11 +110,19 @@ uint8_t channel;
 uint8_t recSize;
 
 	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
+
 #ifdef UTE
 	xprintf_P( PSTR("Compilacion: UTE\r\n\0") );
-#else
-	xprintf_P( PSTR("Compilacion: SPX\r\n\0") );
 #endif
+
+#ifdef SPY
+	xprintf_P( PSTR("Compilacion: SPY\r\n\0") );
+#endif
+
+#ifdef OSE
+	xprintf_P( PSTR("Compilacion: OSE\r\n\0") );
+#endif
+
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
 
 	// SIGNATURE ID
@@ -182,6 +190,9 @@ uint8_t recSize;
 	case DEBUG_COUNT:
 		xprintf_P( PSTR("  debug: counters\r\n\0") );
 		break;
+	case DEBUG_OUTPUTS:
+		xprintf_P( PSTR("  debug: outputs\r\n\0") );
+		break;
 	default:
 		xprintf_P( PSTR("  debug: ???\r\n\0") );
 		break;
@@ -190,7 +201,7 @@ uint8_t recSize;
 	xprintf_P( PSTR("  timerPoll: [%d s]/%d\r\n\0"),systemVars.timerPoll, pub_ctl_readTimeToNextPoll() );
 
 	// Salidas
-	xprintf_P( PSTR("  outputs: 0x%02x\r\n\0"),systemVars.d_outputs );
+	xprintf_P( PSTR("  outputs: 0x%02x [%c%c%c%c%c%c%c%c]\r\n\0"),systemVars.d_outputs, BYTE_TO_BINARY(systemVars.d_outputs));
 
 	// Configuracion de canales analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
@@ -504,6 +515,9 @@ bool retS = false;
 		} else if (!strcmp_P( strupr(argv[2]), PSTR("COUNT\0"))) {
 			systemVars.debug = DEBUG_COUNT;
 			retS = true;
+		} else if (!strcmp_P( strupr(argv[2]), PSTR("OUTPUTS\0"))) {
+			systemVars.debug = DEBUG_OUTPUTS;
+			retS = true;
 		} else {
 			retS = false;
 		}
@@ -684,7 +698,8 @@ static void cmdHelpFunction(void)
 	// HELP CONFIG
 	else if (!strcmp_P( strupr(argv[1]), PSTR("CONFIG\0"))) {
 		xprintf_P( PSTR("-config\r\n\0"));
-		xprintf_P( PSTR("  debug {none,gprs,count }\r\n\0"));
+		xprintf_P( PSTR("  apn, port, ip, script, passwd\r\n\0"));
+		xprintf_P( PSTR("  debug {none,gprs,count, outputs }\r\n\0"));
 		xprintf_P( PSTR("  analog {0..%d} aname imin imax mmin mmax\r\n\0"),( NRO_ANALOG_CHANNELS - 1 ) );
 		xprintf_P( PSTR("  digital {0..%d} dname\r\n\0"), ( NRO_DIGITAL_CHANNELS - 1 ) );
 		xprintf_P( PSTR("  counter {0..%d} cname magPP\r\n\0"), ( NRO_COUNTERS_CHANNELS - 1 ) );

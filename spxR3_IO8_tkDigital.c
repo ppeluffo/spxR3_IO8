@@ -50,14 +50,9 @@ uint8_t pin;
 		//vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 		vTaskDelayUntil( &xLastWakeTime, waiting_ticks );
 
-			for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
+		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 
 			pin = IO_read_DIN(channel);		    // Leo el nivel del pin
-
-#ifdef SPX
-			// En modo SPX todos son de nivel.
-			digital_inputs[channel] = pin;
-#endif
 
 #ifdef UTE
 			if ( channel < 4 ) {
@@ -71,6 +66,16 @@ uint8_t pin;
 					digital_inputs[channel]++;	// Si esta HIGH incremento en 1 tick.
 				}
 			}
+#endif
+
+#ifdef SPY
+			// En modo SPX todos son de nivel.
+			digital_inputs[channel] = pin;
+#endif
+
+#ifdef OSE
+			// En modo SPX todos son de nivel.
+			digital_inputs[channel] = pin;
 #endif
 
 		}

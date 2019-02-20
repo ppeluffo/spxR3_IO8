@@ -110,6 +110,9 @@ uint8_t wdg;
 	// Arranco el MCP
 	MCP_init();
 
+	// Arranco con todos los debugs apagados
+	systemVars.debug = DEBUG_NONE;
+
 	// Habilito a arrancar al resto de las tareas
 	startTask = true;
 

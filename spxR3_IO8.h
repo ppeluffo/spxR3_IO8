@@ -57,8 +57,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.0.8"
-#define SPX_FW_DATE "@ 20181220"
+#define SPX_FW_REV "0.1.4"
+#define SPX_FW_DATE "@ 20190220"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10"
@@ -68,10 +68,9 @@
 #define NRO_COUNTERS_CHANNELS	2
 #define NRO_DIGITAL_OUTPUTS		8
 
-//#define UTE
-#ifndef UTE
-	#define SPX
-#endif
+#define UTE
+//#define SPY
+//#define OSE
 
 #define F_CPU (32000000UL)
 
@@ -124,7 +123,7 @@ char stdout_buff[CHAR64];
 #define TK_DOUTS_READY			0x02	//
 
 //------------------------------------------------------------------------------------
-typedef enum { DEBUG_NONE = 0, DEBUG_GPRS, DEBUG_COUNT } t_debug;
+typedef enum { DEBUG_NONE = 0, DEBUG_GPRS, DEBUG_COUNT, DEBUG_OUTPUTS } t_debug;
 typedef enum { USER_NORMAL, USER_TECNICO } usuario_t;
 //------------------------------------------------------------------------------------
 

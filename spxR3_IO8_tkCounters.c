@@ -43,7 +43,7 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 		// Cuando la interrupcion detecta un flanco, solo envia una notificacion
 		// Espero que me avisen. Si no me avisaron en 10s salgo y repito el ciclo.
 		// Esto es lo que me permite entrar en tickless.
-		ulNotificationValue = ulTaskNotifyTake( pdFALSE, xMaxBlockTime );
+		ulNotificationValue = ulTaskNotifyTake( pdTRUE, xMaxBlockTime );
 
 		if( ulNotificationValue != 0 ) {
 			// Fui notificado: llego algun flanco que determino.
