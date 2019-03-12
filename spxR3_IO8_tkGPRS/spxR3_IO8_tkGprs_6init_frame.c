@@ -230,10 +230,8 @@ static void pv_TX_init_frame(void)
 		xprintf_P( PSTR("&INITCSQ=%d&RST=0x%02x\0"), systemVars.csq,wdg_resetCause );
 	}
 
-#ifdef SPX
-	// En modo SPX trasmito el resto de los parametros de configuracion.
+	// Trasmito el resto de los parametros de configuracion.
 	pv_TX_init_parameters();
-#endif
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
 	xCom_printf_P( fdGPRS, PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );

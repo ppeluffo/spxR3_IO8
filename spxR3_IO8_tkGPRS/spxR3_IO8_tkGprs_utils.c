@@ -108,19 +108,17 @@ void pub_gprs_load_defaults(void)
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
 
-#ifdef UTE
+#if defined(UTE)
 	snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.1.9\0"),16);
 	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spxR38CH.pl\0"),SCRIPT_LENGTH);
-#endif
 
-#ifdef SPY
+#elif defined(SPY)
 	snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spxR3.pl\0"),SCRIPT_LENGTH);
-#endif
 
-#ifdef OSE
+#elif defined(OSE)
 	snprintf_P( systemVars.apn, APN_LENGTH, PSTR("STG1.VPNANTEL\0") );
 	strncpy_P(systemVars.server_ip_address, PSTR("172.27.0.26\0"),16);
 	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spxR3.pl\0"),SCRIPT_LENGTH);

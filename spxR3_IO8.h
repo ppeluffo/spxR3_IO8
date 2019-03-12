@@ -57,8 +57,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.1.4"
-#define SPX_FW_DATE "@ 20190220"
+#define SPX_FW_REV "0.1.5"
+#define SPX_FW_DATE "@ 20190311"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10"
@@ -68,9 +68,9 @@
 #define NRO_COUNTERS_CHANNELS	2
 #define NRO_DIGITAL_OUTPUTS		8
 
-#define UTE
+//#define UTE
 //#define SPY
-//#define OSE
+#define OSE
 
 #define F_CPU (32000000UL)
 

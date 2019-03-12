@@ -36,6 +36,9 @@ void tkOutputs(void * pvParameters)
 		// Siempre reviso las salidas.
 		if ( outputs != systemVars.d_outputs ) {
 			outputs = systemVars.d_outputs;		// Variable local que representa el estado de las salidas
+
+			MCP_init();
+
 			xprintf_P( PSTR("tkOutputs: SET [0x%02x][%c%c%c%c%c%c%c%c]\r\n\0"), outputs,  BYTE_TO_BINARY( outputs) );
 			IO_reflect_DOUTPUTS(outputs);
 		}

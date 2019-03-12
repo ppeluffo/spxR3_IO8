@@ -20,6 +20,13 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * Version 0.1.5 @ 20190311
+ * - Agrego 3 defines ( UTE / SPY / OSE ).
+ *   Se aplican en GPRS ( defaults ), Cmd ( indica la compilacion ), tkDigital.
+ * - Agrego que cada vez que cambio las entradas digitales, reinicio el MCP ( MCP_init )
+ *   ya que hay veces que queda con algún registro mal por ruidos externos.
+ * -
+ *------------------------------------------------------------------------------------------
  * Version 0.0.5 @ 2018-11-26
  * Solo en la rama UTE, los canales digitales pueden medir nivel o tiempo
  * D0..D3 miden solo nivel y D4..D7 miden solo tiempo.

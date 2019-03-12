@@ -18,7 +18,6 @@ void tkDigital(void * pvParameters)
 	// Las que estan en 1 sumo 1 al contador.
 	// En UTE dividimos las entradas digitales en 2: aquellas que solo miden nivel logico (0..3)
 	// y las que miden el tiempo que estan en 1 ( 4..7)
-	// En modo SPX solo mido el nivel logico
 
 ( void ) pvParameters;
 uint32_t waiting_ticks;
@@ -54,7 +53,10 @@ uint8_t pin;
 
 			pin = IO_read_DIN(channel);		    // Leo el nivel del pin
 
-#ifdef UTE
+#if defined(UTE)
+			// En UTE la mitad de los canales son de nivel y la otra mitad sirven como
+			// timers para medir tiempo encendido de bombas
+
 			if ( channel < 4 ) {
 				// D0..D3 son de nivel.
 				digital_inputs[channel] = pin;
@@ -66,15 +68,13 @@ uint8_t pin;
 					digital_inputs[channel]++;	// Si esta HIGH incremento en 1 tick.
 				}
 			}
-#endif
 
-#ifdef SPY
-			// En modo SPX todos son de nivel.
+#elif defined(SPY)
+
 			digital_inputs[channel] = pin;
-#endif
 
-#ifdef OSE
-			// En modo SPX todos son de nivel.
+#elif defined(OSE)
+
 			digital_inputs[channel] = pin;
 #endif
 
@@ -101,11 +101,6 @@ uint8_t channel;
 
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 
-#ifdef SPX
-		// Copio
-		d_inputs[channel] = digital_inputs[channel];
-#endif
-
 #ifdef UTE
 		// D0..D3 son de nivel.
 		if ( channel < 4 ) {
@@ -124,6 +119,15 @@ uint8_t channel;
 		}
 #endif
 
+#ifdef SPX
+		// Copio
+		d_inputs[channel] = digital_inputs[channel];
+#endif
+
+#ifdef OSE
+		// Copio
+		d_inputs[channel] = digital_inputs[channel];
+#endif
 		// Pongo a 0
 		if ( clear_ticks_flag ) {
 			digital_inputs[channel] = 0;

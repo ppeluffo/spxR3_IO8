@@ -111,15 +111,13 @@ uint8_t recSize;
 
 	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
 
-#ifdef UTE
+#if defined(UTE)
 	xprintf_P( PSTR("Compilacion: UTE\r\n\0") );
-#endif
 
-#ifdef SPY
+#elif defined(SPY)
 	xprintf_P( PSTR("Compilacion: SPY\r\n\0") );
-#endif
 
-#ifdef OSE
+#elif defined(OSE)
 	xprintf_P( PSTR("Compilacion: OSE\r\n\0") );
 #endif
 

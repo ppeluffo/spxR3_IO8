@@ -82,7 +82,10 @@ RESTART:
 
 		// Cuando  no estoy en linea pongo las salidas en 0x00.
 		if ( systemVars.debug != DEBUG_OUTPUTS ) {
+
+			MCP_init();
 			systemVars.d_outputs = 0x00;
+
 			xprintf_P( PSTR("set outputs to 0x00 !!\r\n\0"));
 		}
 
