@@ -239,7 +239,7 @@ uint16_t i;
 	systemVars.checksum = checksum;
 
 	// Guardo systemVars en la EE
-	NVMEE_write_buffer(0x00, &systemVars, sizeof(systemVars));
+	nvm_eeprom_erase_and_write_buffer(0x00, &systemVars, sizeof(systemVars));
 
 	return(checksum);
 
@@ -258,7 +258,7 @@ uint16_t data_length;
 uint16_t i;
 
 	// Leo de la EE es systemVars.
-	NVMEE_read_buffer(0x00, (char *)&systemVars, sizeof(systemVars));
+	nvm_eeprom_read_buffer(0x00, (char *)&systemVars, sizeof(systemVars));
 
 	// Guardo el checksum que lei.
 	stored_checksum = systemVars.checksum;

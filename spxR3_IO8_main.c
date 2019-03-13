@@ -20,6 +20,11 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * Version 0.1.6 @ 20190313
+ * - Modifico las rutinas de acceso a la NMVM. Uso las mismas que estoy usando en spxR4.
+ * - Cuando por GPRS reconfiguro el dlgid, salvo el systemVars y me reseteo enseguida.
+ *
+ *------------------------------------------------------------------------------------------
  * Version 0.1.5 @ 20190311
  * - Agrego 3 defines ( UTE / SPY / OSE ).
  *   Se aplican en GPRS ( defaults ), Cmd ( indica la compilacion ), tkDigital.

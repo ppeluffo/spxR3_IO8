@@ -57,8 +57,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.1.5"
-#define SPX_FW_DATE "@ 20190311"
+#define SPX_FW_REV "0.1.6"
+#define SPX_FW_DATE "@ 20190313"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10"

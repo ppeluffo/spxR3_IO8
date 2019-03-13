@@ -32,7 +32,6 @@ static void cmdPokeFunction(void);
 static void cmdPeekFunction(void);
 
 static void pv_cmd_rwEE(uint8_t cmd_mode );
-static void pv_cmd_rwNVMEE(uint8_t cmd_mode );
 static void pv_cmd_rwRTC(uint8_t cmd_mode );
 static void pv_cmd_rwRTC_SRAM(uint8_t cmd_mode );
 static void pv_cmd_rwMCP(uint8_t cmd_mode );
@@ -282,7 +281,8 @@ static void cmdWriteFunction(void)
 	// NVMEE
 	// write nvmee pos string
 	if (!strcmp_P( strupr(argv[1]), PSTR("NVMEE\0")) && ( tipo_usuario == USER_TECNICO) ) {
-		pv_cmd_rwNVMEE(WR_CMD);
+		NVMEE_test_write ( argv[2], argv[3] );
+		pv_snprintfP_OK();
 		return;
 	}
 
@@ -380,8 +380,8 @@ static void cmdReadFunction(void)
 
 	// NVMEE
 	// read nvmee address length
-	if (!strcmp_P( strupr(argv[1]), PSTR("NVMEE\0"))) {
-		pv_cmd_rwNVMEE(RD_CMD);
+	if (!strcmp_P( strupr(argv[1]), PSTR("NVMEE\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		NVMEE_test_read ( argv[2], argv[3] );
 		return;
 	}
 
@@ -961,42 +961,6 @@ char *p;
 		return;
 	}
 
-}
-//------------------------------------------------------------------------------------
-static void pv_cmd_rwNVMEE(uint8_t cmd_mode )
-{
-	// Hace prueba de lectura y escritura de la memoria internan EE del micro
-	// que es la que usamos para guardar la configuracion.
-
-int xBytes = 0;
-uint8_t length = 0;
-char buffer[32];
-char *p;
-
-	// read nvmee {pos} {lenght}
-	if ( cmd_mode == RD_CMD ) {
-
-		xBytes = NVMEE_read( (uint16_t)(atoi(argv[2])), buffer, (uint8_t)(atoi(argv[3]) ) );
-		if ( xBytes > 0 ) {
-			xprintf_P( PSTR( "%s\r\n\0"),buffer);
-		}
-		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	// write nvmee pos string
-	if ( cmd_mode == WR_CMD ) {
-		// Calculamos el largo del texto a escribir en la eeprom.
-		p = argv[3];
-		while (*p != 0) {
-			p++;
-			length++;
-		}
-
-		xBytes = NVMEE_write( (uint16_t)(atoi(argv[2])), argv[3], length );
-		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
 }
 //------------------------------------------------------------------------------------
 static void pv_cmd_rwRTC(uint8_t cmd_mode )

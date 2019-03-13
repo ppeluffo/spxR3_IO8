@@ -364,9 +364,18 @@ char *delim = ",=:><";
 	strncpy(systemVars.dlgId, token,DLGID_LENGTH);
 
 	ret = 1;
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: Reconfig DLGID\r\n\0"));
-	}
+	xprintf_P( PSTR("GPRS: Reconfig DLGID\r\n\0"));
+
+	// Modificacion 2019-03-13
+	// Salvo ahora la nueva configuracion ( dlgid ) y mando resetear el micro
+	pub_save_params_in_NVMEE();
+	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+
+	// Me reseteo para no mandar aun ningun frame de datos y forzar una
+	// reconfiguracin de canales.
+	CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
+	while(1)
+		;
 
 quit:
 
