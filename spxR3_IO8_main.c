@@ -19,6 +19,13 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n spxR1.elf | more
  *
+ * ------------------------------------------------------------------------------------------
+ * Version 0.1.7 @ 20190520
+ * Implemento un nuevo control de las salidas para el caso en que se pierde la comunicacion.
+ * Al inicio el control es BOYA.
+ * Cuando llega algun dato, el control pasa a SISTEMA y se arranca un timer del dato de 10mins.
+ * Si el timer expira, el control se pasa a BOYA.
+ *
  *------------------------------------------------------------------------------------------
  * Version 0.1.6 @ 20190313
  * - Modifico las rutinas de acceso a la NMVM. Uso las mismas que estoy usando en spxR4.

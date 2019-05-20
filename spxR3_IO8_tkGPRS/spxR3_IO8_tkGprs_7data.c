@@ -383,6 +383,7 @@ char *p;
 
 //	xTaskNotifyGive( xHandle_tkOutputs );
 
+	pub_ctl_reload_outputs_timer();
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: processOUTS %d\r\n\0"), systemVars.d_outputs );
 	}

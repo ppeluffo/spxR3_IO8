@@ -57,8 +57,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.1.6"
-#define SPX_FW_DATE "@ 20190313"
+#define SPX_FW_REV "0.1.7"
+#define SPX_FW_DATE "@ 20190520"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10"
@@ -185,6 +185,7 @@ typedef struct {
 
 systemVarsType systemVars;
 
+
 bool startTask;
 //------------------------------------------------------------------------------------
 // PROTOTIPOS
@@ -222,6 +223,7 @@ void pub_ctl_print_wdg_timers(void);
 void pub_ctl_print_stack_watermarks(void);
 uint16_t pub_ctl_readTimeToNextPoll(void);
 void pub_ctl_reload_timerPoll(void);
+void pub_ctl_reload_outputs_timer(void);
 
 // tkCounters
 void pub_counters_read( uint16_t *count0, uint16_t *count1, bool clear_counters_flag );

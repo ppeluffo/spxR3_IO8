@@ -81,14 +81,13 @@ void tkGprsTx(void * pvParameters)
 RESTART:
 
 		// Cuando  no estoy en linea pongo las salidas en 0x00.
-		if ( systemVars.debug != DEBUG_OUTPUTS ) {
-
+/*		Cambio en version 0.1.7 !!!
+ * 		if ( systemVars.debug != DEBUG_OUTPUTS ) {
 			MCP_init();
 			systemVars.d_outputs = 0x00;
-
 			xprintf_P( PSTR("set outputs to 0x00 !!\r\n\0"));
 		}
-
+*/
 		if ( st_gprs_esperar_apagado() != bool_CONTINUAR ) {	// Espero con el modem apagado
 			goto RESTART;
 		}

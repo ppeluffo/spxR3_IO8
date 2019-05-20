@@ -13,6 +13,7 @@ static void pv_tkCtl_wink_led(void);
 static void pv_tkCtl_check_wdg(void);
 static void pv_tkCtl_ajust_timerPoll(void);
 static void pv_daily_reset(void);
+static void pv_control_outputs(void);
 
 static uint16_t time_to_next_poll;
 static uint16_t watchdog_timers[NRO_WDGS];
@@ -30,6 +31,11 @@ const char string_6[] PROGMEM = "GTX";
 const char string_7[] PROGMEM = "XBE";
 
 const char * const wdg_names[] PROGMEM = { string_0, string_1, string_2, string_3, string_4, string_5, string_6, string_7 };
+
+typedef enum { CTL_BOYA, CTL_SISTEMA } outputs_control_t;
+uint8_t outputs_control;
+static uint16_t outputs_timer;
+#define TIMEOUT_OUTPUTS_TIMER	600
 
 //------------------------------------------------------------------------------------
 void tkCtl(void * pvParameters)
@@ -58,6 +64,7 @@ void tkCtl(void * pvParameters)
 		pv_tkCtl_check_wdg();
 		pv_tkCtl_ajust_timerPoll();
 		pv_daily_reset();
+		pv_control_outputs();
 
 	}
 }
@@ -110,11 +117,55 @@ uint8_t wdg;
 	// Arranco el MCP
 	MCP_init();
 
+	// Control de las salidas
+	outputs_control = CTL_BOYA;
+	outputs_timer = 0;
+
 	// Arranco con todos los debugs apagados
 	systemVars.debug = DEBUG_NONE;
 
 	// Habilito a arrancar al resto de las tareas
 	startTask = true;
+
+}
+//------------------------------------------------------------------------------------
+static void pv_control_outputs(void)
+{
+	// Controla quien controla las salidas: BOYA o SISTEMA
+	// 1) Si las salidas estan en BOYA y el valor pasa a ser != 0x00 el control pasa
+	//    al SISTEMA y arranca el timer.
+	// 2) Si el control es del SISTEMA y el timer expiro, paso el control a las BOYAS
+
+	switch ( outputs_control ) {
+	case CTL_BOYA:
+		// 1) Si las salidas estan en BOYA y el valor de las salidas pasa a ser != 0x00 el control pasa
+		//    al SISTEMA y arranca el timer.
+		if ( systemVars.d_outputs != 0x00 ) {
+			outputs_control = CTL_SISTEMA;
+			outputs_timer = TIMEOUT_OUTPUTS_TIMER;
+			MCP_init();
+			xprintf_P( PSTR("OUTPUT CTL: SISTEMA !!!. (Reinit outputs timer)\r\n\0"));
+		}
+		break;
+
+	case CTL_SISTEMA:
+		// 2) Si el control es del SISTEMA y el timer expiro, paso el control a las BOYAS
+		if ( outputs_timer == 0 ) {
+			MCP_init();
+			systemVars.d_outputs = 0x00;
+			outputs_control = CTL_BOYA;
+			xprintf_P( PSTR("OUTPUT CTL: BOYAS !!!. (set outputs to 0x00)\r\n\0"));
+		}
+		// 3) Si estoy en control por SISTEMA voy contando la antiguedad del dato.
+		if ( outputs_timer > 0 ) {
+			outputs_timer--;
+		}
+		break;
+	default:
+		xprintf_P( PSTR("ERROR Control outputs: Pasa a BOYA !!\r\n\0"));
+		outputs_control = CTL_BOYA;
+		break;
+	}
 
 }
 //------------------------------------------------------------------------------------
@@ -199,6 +250,11 @@ static uint32_t ticks_to_reset = 86400 / TKCTL_DELAY_S ; // Segundos en 1 dia.
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
+//------------------------------------------------------------------------------------
+void pub_ctl_reload_outputs_timer(void)
+{
+	outputs_timer = TIMEOUT_OUTPUTS_TIMER;
+}
 //------------------------------------------------------------------------------------
 uint16_t pub_ctl_readTimeToNextPoll(void)
 {
