@@ -107,6 +107,7 @@ static void cmdStatusFunction(void)
 FAT_t l_fat;
 uint8_t channel;
 uint8_t recSize;
+uint8_t mcp_data;
 
 	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
 
@@ -198,7 +199,19 @@ uint8_t recSize;
 	xprintf_P( PSTR("  timerPoll: [%d s]/%d\r\n\0"),systemVars.timerPoll, pub_ctl_readTimeToNextPoll() );
 
 	// Salidas
-	xprintf_P( PSTR("  outputs: 0x%02x [%c%c%c%c%c%c%c%c]\r\n\0"),systemVars.d_outputs, BYTE_TO_BINARY(systemVars.d_outputs));
+	MCP_read( 0x15, &mcp_data, 1 );
+	xprintf_P( PSTR("  outputs: 0x%02x [%c%c%c%c%c%c%c%c](mcp olatb=0x%02x] \r\n\0"),systemVars.d_outputs, BYTE_TO_BINARY(systemVars.d_outputs), mcp_data );
+	switch ( pub_output_read_control() ) {
+	case CTL_BOYA:
+		xprintf_P( PSTR("  outputs: BOYA, timer=%d\r\n\0"), pub_output_read_datatimer() );
+		break;
+	case CTL_SISTEMA:
+		xprintf_P( PSTR("  outputs: SISTEMA, timer=%d\r\n\0"), pub_output_read_datatimer() );
+		break;
+	default:
+		xprintf_P( PSTR("  outputs: ERR, timer=%d\r\n\0"), pub_output_read_datatimer() );
+		break;
+	}
 
 	// Configuracion de canales analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
@@ -293,6 +306,12 @@ static void cmdWriteFunction(void)
 		return;
 	}
 
+	// write mcpinit
+	if (!strcmp_P( strupr(argv[1]), PSTR("MCPINIT\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		MCP_init();
+		return;
+	}
+
 	// write output {0..7} {set | clear}
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUT\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_wDOUTPUT();
@@ -331,8 +350,7 @@ static void cmdWriteFunction(void)
 
 	// write dout nnn
 	if (!strcmp_P( strupr(argv[1]), PSTR("DOUT\0")) ) {
-		systemVars.d_outputs = atoi( argv[2]);
-
+		pub_output_set( atoi( argv[2]), true );
 		return;
 	}
 
@@ -651,7 +669,7 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("  rtc YYMMDDhhmm\r\n\0"));
 		if ( tipo_usuario == USER_TECNICO ) {
 			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {string}\r\n\0"));
-			xprintf_P( PSTR("  mcp {regAddr} {data}\r\n\0"));
+			xprintf_P( PSTR("  mcp {regAddr} {data}, mcpinit\r\n\0"));
 			xprintf_P( PSTR("  ina (id) { conf (value), conf128 }\r\n\0"));
 			xprintf_P( PSTR("  output {0..7} {set | clear}\r\n\0"));
 			xprintf_P( PSTR("  dout {0..255}\r\n\0"));
@@ -1062,7 +1080,8 @@ uint8_t data;
 
 	// write ee regAddr value
 	if ( cmd_mode == WR_CMD ) {
-		xBytes = EE_write( (uint32_t)(atoi(argv[2])), argv[3], 1 );
+		data = atoi(argv[3]);
+		xBytes = MCP_write( (uint32_t)(atoi(argv[2])), (char *)&data , 1 );
 		if ( xBytes == -1 )
 			xprintf_P(PSTR("ERROR: I2C:MCP:pv_cmd_rwMCP\r\n\0"));
 
@@ -1070,13 +1089,18 @@ uint8_t data;
 		return;
 	}
 
+
 }
 //------------------------------------------------------------------------------------
 static void pv_cmd_rwDIN(void )
 {
-uint16_t pinValue;
+int8_t pinValue;
 
 	pinValue = IO_read_DIN( atoi(argv[2]));
+	if ( pinValue == - 1) {
+		xprintf_P( PSTR("DIN_%0d: ERROR DE LECTURA (%d)r\n\0"),atoi(argv[2]), pinValue );
+		return;
+	}
 	xprintf_P( PSTR("DIN_%0d = %d\r\n\0"),atoi(argv[2]), pinValue );
 	return;
 }

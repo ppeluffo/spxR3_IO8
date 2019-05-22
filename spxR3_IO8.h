@@ -53,12 +53,13 @@
 #include "l_printf.h"
 #include "l_ain.h"
 #include "l_mcp23018.h"
+#include "l_bytes.h"
 
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.1.7"
-#define SPX_FW_DATE "@ 20190520"
+#define SPX_FW_REV "0.1.8"
+#define SPX_FW_DATE "@ 20190522"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10"
@@ -125,6 +126,7 @@ char stdout_buff[CHAR64];
 //------------------------------------------------------------------------------------
 typedef enum { DEBUG_NONE = 0, DEBUG_GPRS, DEBUG_COUNT, DEBUG_OUTPUTS } t_debug;
 typedef enum { USER_NORMAL, USER_TECNICO } usuario_t;
+typedef enum { CTL_BOYA, CTL_SISTEMA } outputs_control_t;
 //------------------------------------------------------------------------------------
 
 // Estructura para manejar la hora de aplicar las consignas
@@ -248,6 +250,11 @@ void pub_gprs_load_defaults(void);
 
 // tkOutputs
 void pub_output_load_defaults(void);
+void pub_output_set( uint8_t dout, bool force );
+uint16_t pub_output_read_datatimer(void);
+outputs_control_t pub_output_read_control(void);
+void pub_output_mcp_raise_error(void);
+
 
 // WATCHDOG
 #define WDG_CMD			0

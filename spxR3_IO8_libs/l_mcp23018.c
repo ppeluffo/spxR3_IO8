@@ -75,12 +75,15 @@ bool init_flag = true;
 //	if ( rdBytes == -1 )
 //		xprintf_P(PSTR("ERROR: I2C:MCP: init OLATA\r\n\0"));
 
-	data = 0x00;	// El puerto B arranca con las salidas en 0.
-	rdBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
-	if ( rdBytes == -1 ) {
-		xprintf_P(PSTR("ERROR: I2C:MCP: init OLATB\r\n\0"));
-		init_flag = false;
-	}
+
+// Version 0.1.7b1 @ 20190520.
+// No inicializo el OLATB !!!
+//	data = 0x00;	// El puerto B arranca con las salidas en 0.
+//	rdBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
+//	if ( rdBytes == -1 ) {
+//		xprintf_P(PSTR("ERROR: I2C:MCP: init OLATB\r\n\0"));
+//		init_flag = false;
+//	}
 	//
 	// GPINTEN: inputs interrupt on change.
 	// Habilito que DIN0/1 generen una interrupcion on-change.

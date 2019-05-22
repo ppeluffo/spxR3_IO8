@@ -23,7 +23,7 @@ void tkDigital(void * pvParameters)
 uint32_t waiting_ticks;
 TickType_t xLastWakeTime;
 uint8_t channel;
-uint8_t pin;
+int8_t pin;
 
 	// Espero la notificacion para arrancar
 	while ( !startTask )
@@ -52,6 +52,12 @@ uint8_t pin;
 		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 
 			pin = IO_read_DIN(channel);		    // Leo el nivel del pin
+
+			if ( pin == -1 ) {
+				// Error de lectura del MCP.
+				// Aviso a la tarea de outputs !!!
+				pub_output_mcp_raise_error();
+			}
 
 #if defined(UTE)
 			// En UTE la mitad de los canales son de nivel y la otra mitad sirven como

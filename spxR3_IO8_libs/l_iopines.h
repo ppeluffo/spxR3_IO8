@@ -11,7 +11,6 @@
 #include <avr/io.h>
 #include <stdbool.h>
 
-#define CHECK_BIT_IS_SET(var,pos) ((var) & (1<<(pos)))
 
 #define PORT_SetPinAsOutput( _port, _bitPosition ) ( (_port)->DIR = (_port)->DIR | (1 << _bitPosition) )
 #define PORT_SetPinAsInput( _port, _bitPosition ) ( (_port)->DIR = (_port)->DIR & ~(1 << _bitPosition) )
@@ -208,7 +207,7 @@ uint8_t IO_read_RI(void);
 //------------------------------------------------------------------------------------
 // IO data pines
 
-uint8_t IO_read_DIN( uint8_t pin);
+int8_t IO_read_DIN( uint8_t pin);
 void IO_set_DOUT(uint8_t pin);
 void IO_clr_DOUT(uint8_t pin);
 void IO_reflect_DOUTPUTS(uint8_t output_value );

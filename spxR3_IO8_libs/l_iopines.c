@@ -6,6 +6,7 @@
  */
 #include "l_iopines.h"
 #include "l_mcp23018.h"
+#include "l_bytes.h"
 
 //------------------------------------------------------------------------------------
 // ENTRADAS DIGITALES DEL MODEM
@@ -94,7 +95,7 @@ void PORT_ConfigureInterrupt1( PORT_t * port, PORT_INT1LVL_t intLevel,uint8_t pi
 }
 */
 //------------------------------------------------------------------------------------
-uint8_t IO_read_DIN( uint8_t pin)
+int8_t IO_read_DIN( uint8_t pin)
 {
 
 	// Los pines pueden ser 0 o 1. Cualquier otro valor es error
@@ -102,12 +103,11 @@ uint8_t IO_read_DIN( uint8_t pin)
 uint8_t data;
 int8_t rdBytes;
 
-//	xprintf_P(PSTR("DEBUG_1: IO_read_DIN\r\n\0"));
 	rdBytes = MCP_read( MCP_GPIOA, (char *)&data, 1 );
-//	xprintf_P(PSTR("DEBUG_2: IO_read_DIN\r\n\0"));
 
 	if ( rdBytes == -1 ) {
 		xprintf_P(PSTR("ERROR: IO_read_DIN\r\n\0"));
+		return(-1);
 	}
 
 	data = (data & ( 1 << pin )) >> pin;
@@ -177,18 +177,10 @@ int8_t xBytes;
 
 	// Escribe todas las salidas a la vez.
 	// En el hardware las salidas son inversas a los bits ( posiciones )
-	data = 0x00;
-	if ( CHECK_BIT_IS_SET(output_value, 0) ) { data |= 0x80; }
-	if ( CHECK_BIT_IS_SET(output_value, 1) ) { data |= 0x40; }
-	if ( CHECK_BIT_IS_SET(output_value, 2) ) { data |= 0x20; }
-	if ( CHECK_BIT_IS_SET(output_value, 3) ) { data |= 0x10; }
-	if ( CHECK_BIT_IS_SET(output_value, 4) ) { data |= 0x08; }
-	if ( CHECK_BIT_IS_SET(output_value, 5) ) { data |= 0x04; }
-	if ( CHECK_BIT_IS_SET(output_value, 6) ) { data |= 0x02; }
-	if ( CHECK_BIT_IS_SET(output_value, 7) ) { data |= 0x01; }
+
+	data = twiddle_bits( output_value );
 
 //	xprintf_P(PSTR("IO: %d 0x%0x, DAT=0x%0x\r\n\0"),output_value,output_value, data);
-
 	xBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
 
 }

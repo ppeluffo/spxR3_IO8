@@ -18,6 +18,7 @@ static bool pv_procese_respuesta_server(void);
 static void pv_process_response_RESET(void);
 static uint8_t pv_process_response_OK(void);
 static void pv_process_response_DOUTS(void);
+static void pv_process_response_MCPRST(void);
 
 static bool pv_check_more_Rcds4Del ( void );
 
@@ -280,6 +281,11 @@ bool exit_flag = false;
 				goto EXIT;
 			}
 
+			if ( pub_gprs_check_response ("MCPRST\0")) {
+				// El sever mando la orden de resetear el MCP y poner las salidas en 0.
+				pv_process_response_MCPRST();
+			}
+
 			if ( pub_gprs_check_response ("RESET\0")) {
 				// El sever mando la orden de resetearse inmediatamente
 				pv_process_response_RESET();
@@ -370,23 +376,82 @@ char *p;
 
 	p1 = strsep(&stringp,delim);	// Str. con el valor de las salidas. 0..128
 
-	systemVars.d_outputs = atoi(p1);
+	// Actualizo el status a travez de una funcion propia del modulo de outputs
+	pub_output_set( atoi(p1), false );
 
+	//systemVars.d_outputs = atoi(p1);
 	// Aviso a la tarea de outputs
-//	while ( xTaskNotify(xHandle_tkOutputs, TK_DOUTS_READY , eSetBits ) != pdPASS ) {
-//		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-//	}
+	//while ( xTaskNotify(xHandle_tkOutputs, TK_DOUTS_READY , eSetBits ) != pdPASS ) {
+	//	vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	//}
 
-//	while ( xTaskNotifyGive(xHandle_tkOutputs ) != pdPASS ) {
-//		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-//	}
-
-//	xTaskNotifyGive( xHandle_tkOutputs );
-
-	pub_ctl_reload_outputs_timer();
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: processOUTS %d\r\n\0"), systemVars.d_outputs );
 	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_process_response_MCPRST(void)
+{
+
+uint8_t data;
+int8_t wrBytes;
+bool init_flag = true;
+
+		// IOCON
+		data = 0x63;
+		wrBytes = MCP_write(MCP_IOCON, (char *)&data, 1 );
+		if ( wrBytes == -1 ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: ERROR: I2C:MCP: init IOCON\r\n\0"));
+			init_flag = false;
+		}
+
+		//
+		// DIRECCION
+		data = 0xFF; // El puerto A son todos inputs
+		wrBytes = MCP_write(MCP_IODIRA, (char *)&data, 1 );
+		if ( wrBytes == -1 ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: ERROR: I2C:MCP: init IODIRA\r\n\0"));
+			init_flag = false;
+		}
+
+		data = 0x00; // El puerto B son todos outputs
+		wrBytes = MCP_write(MCP_IODIRB, (char *)&data, 1 );
+		if ( wrBytes == -1 ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: ERROR: I2C:MCP: init IODIRB\r\n\0"));
+			init_flag = false;
+		}
+
+		//
+		// PULL-UPS
+		data = 0xFF; // El puerto A son inputs y tienen pull-up
+		wrBytes = MCP_write(MCP_GPPUA, (char *)&data, 1 );
+		if ( wrBytes == -1 ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: ERROR: I2C:MCP: init GPPUA\r\n\0"));
+			init_flag = false;
+		}
+
+		data = 0xFF; // El puerto B son outputs. No los usa.
+		wrBytes = MCP_write(MCP_GPPUB, (char *)&data, 1 );
+		if ( wrBytes == -1 ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: ERROR: I2C:MCP: init GPPUB\r\n\0"));
+			init_flag = false;
+		}
+
+		//
+		// Valores iniciales de las salidas en 0
+		data = 0x00;	// El puerto B arranca con las salidas en 0.
+		wrBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
+		if ( wrBytes == -1 ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: ERROR: I2C:MCP: init OLATB\r\n\0"));
+			init_flag = false;
+		}
+
+		if ( init_flag ) {
+			xprintf_P(PSTR("GPRS_process MCPRST: MCP init OK.\r\n\0"));
+		} else {
+			xprintf_P(PSTR("GPRS_process MCPRST: MCP init FAIL !!!!.\r\n\0"));
+		}
 
 }
 //------------------------------------------------------------------------------------

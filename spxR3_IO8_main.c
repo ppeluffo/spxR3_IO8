@@ -25,6 +25,22 @@
  * Al inicio el control es BOYA.
  * Cuando llega algun dato, el control pasa a SISTEMA y se arranca un timer del dato de 10mins.
  * Si el timer expira, el control se pasa a BOYA.
+ * Agrego en el status ver quien tiene el control y el valor del timer
+ * Corrijo en cmd la funcion que escribe el mcp.
+ * Cambio la forma de procesar las salidas: las escribo siempre !! ( gprs_data )
+ * Agrego un comando MCPRST que resetea el MCP y lo pone las salidas en 0.
+ *
+ * Intercambiar los nibbles cuando arranco
+ * Ver el tema del servidor de OSE
+ * conciliar todo con el control BOYA / SISTEMA.
+ *
+ * A) Toda la programacion referente al manejo de las salidas la paso al modulo tkOutputs
+ *    En gprs_tkData cuando llega un valor de DOUT solo lo escribo en el systemVars y aviso a la tarea tkOutputs
+ *    En tkCtl elimino todo lo referente al control del MCP.
+ * B) No quiero que al resetear el micro se resetee el MCP poniendo las salidas a 0x00 por
+ *    lo tanto en MCP_init, elimino el codigo para setear el OLATB.
+ * C) Cambio el tipos de IO_read_DIN de uint8_t a int8_t de modo que en caso de error
+ *    devuelva un -1 y asi puedo saber que paso y tomar las medidas adecuadas.
  *
  *------------------------------------------------------------------------------------------
  * Version 0.1.6 @ 20190313
