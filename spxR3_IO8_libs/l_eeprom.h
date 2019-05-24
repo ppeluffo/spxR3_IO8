@@ -14,8 +14,11 @@
 //--------------------------------------------------------------------------------
 // API START
 
-#define EE_read( rdAddress, data, length ) I2C_read( BUSADDR_EEPROM_M2402, rdAddress, data, length );
-#define EE_write( wrAddress, data, length ) I2C_write( BUSADDR_EEPROM_M2402, wrAddress, data, length );
+//#define EE_read( rdAddress, data, length ) I2C_read( BUSADDR_EEPROM_M2402, rdAddress, data, length );
+//#define EE_write( wrAddress, data, length ) I2C_write( BUSADDR_EEPROM_M2402, wrAddress, data, length );
+
+int8_t EE_read( uint32_t rdAddress, char *data, uint8_t length );
+int8_t EE_write( uint32_t wrAddress, char *data, uint8_t length );
 
 // API END
 //--------------------------------------------------------------------------------

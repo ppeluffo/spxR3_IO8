@@ -20,6 +20,7 @@
 
 int8_t I2C_read( uint8_t i2c_bus_address, uint32_t rdAddress, char *data, uint8_t length );
 int8_t I2C_write( uint8_t i2c_bus_address, uint32_t wrAddress, char *data, uint8_t length );
+int8_t I2C_get_bus_status(void);
 
 
 #endif /* SRC_SPXR3_IO8_LIBS_L_I2C_H_ */

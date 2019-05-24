@@ -117,7 +117,7 @@ int8_t rdBytes;
 
 }
 //------------------------------------------------------------------------------------
-void IO_set_DOUT(uint8_t pin)
+int8_t IO_set_DOUT(uint8_t pin)
 {
 	// Leo el MCP, aplico la mascara y lo escribo de nuevo
 
@@ -126,14 +126,14 @@ int8_t xBytes;
 
 	// Control de entrada valida
 	if ( pin > 7 ) {
-		xprintf_P(PSTR("ERROR: IO_read_DIN (pin<7)!!!\r\n\0"));
-		return;
+		xprintf_P(PSTR("ERROR: IO_set_DOUT (pin<7)!!!\r\n\0"));
+		return(-1);
 	}
 
 	xBytes = MCP_read( MCP_GPIOB, (char *)&data, 1 );
 	if ( xBytes == -1 ) {
-		xprintf_P(PSTR("ERROR: IO_read_DIN\r\n\0"));
-		return;
+		xprintf_P(PSTR("ERROR: IO_set_DOUT(1)\r\n\0"));
+		return(-1);
 	}
 
 	// Aplico la mascara para setear el pin dado
@@ -141,10 +141,16 @@ int8_t xBytes;
 	data |= ( 1 << ( 7 - pin )  );
 
 	xBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
+	if ( xBytes == -1 ) {
+		xprintf_P(PSTR("ERROR: IO_set_DOUT(2)\r\n\0"));
+		return(-1);
+	}
+
+	return(1);
 
 }
 //------------------------------------------------------------------------------------
-void IO_clr_DOUT(uint8_t pin)
+int8_t IO_clr_DOUT(uint8_t pin)
 {
 	// Leo el MCP, aplico la mascara y lo escribo de nuevo
 
@@ -153,24 +159,29 @@ int8_t xBytes;
 
 	// Control de entrada valida
 	if ( pin > 7 ) {
-		xprintf_P(PSTR("ERROR: IO_read_DIN (pin<7)!!!\r\n\0"));
-		return;
+		xprintf_P(PSTR("ERROR: IO_clr_DOUT (pin<7)!!!\r\n\0"));
+		return(-1);
 	}
 
 	xBytes = MCP_read( MCP_GPIOB, (char *)&data, 1 );
 	if ( xBytes == -1 ) {
-		xprintf_P(PSTR("ERROR: IO_read_DIN\r\n\0"));
-		return;
+		xprintf_P(PSTR("ERROR: IO_clr_DOUT(1)\r\n\0"));
+		return(-1);
 	}
 
 	// Aplico la mascara para setear el pin dado
 	data &= ~( 1 << ( 7 - pin ) );
 
 	xBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
+	if ( xBytes == -1 ) {
+		xprintf_P(PSTR("ERROR: IO_clr_DOUT(2)\r\n\0"));
+		return(-1);
+	}
 
+	return(1);
 }
 //------------------------------------------------------------------------------------
-void IO_reflect_DOUTPUTS(uint8_t output_value )
+int8_t IO_reflect_DOUTPUTS(uint8_t output_value )
 {
 uint8_t data;
 int8_t xBytes;
@@ -182,7 +193,12 @@ int8_t xBytes;
 
 //	xprintf_P(PSTR("IO: %d 0x%0x, DAT=0x%0x\r\n\0"),output_value,output_value, data);
 	xBytes = MCP_write(MCP_OLATB, (char *)&data, 1 );
+	if ( xBytes == -1 ) {
+		xprintf_P(PSTR("ERROR: IO_reflect_DOUTPUTS\r\n\0"));
+		return(-1);
+	}
 
+	return(1);
 }
 //------------------------------------------------------------------------------------
 

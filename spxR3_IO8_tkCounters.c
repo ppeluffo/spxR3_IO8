@@ -65,7 +65,7 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 			}
 
 			// Espero 100ms de debounced
-			vTaskDelay( ( TickType_t)( 50 / portTICK_RATE_MS ) );
+			vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
 			IO_clr_CLRD();		// Borro el latch llevandolo a 0.
 		//	vTaskDelay( ( TickType_t)( 1 / portTICK_RATE_MS ) );

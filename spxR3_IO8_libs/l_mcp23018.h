@@ -13,9 +13,11 @@
 #include "stdint.h"
 #include "l_i2c.h"
 
-#define MCP_read( rdAddress, data, length ) I2C_read( BUSADDR_MCP23018, rdAddress, data, length );
-#define MCP_write( wrAddress, data, length ) I2C_write( BUSADDR_MCP23018, wrAddress, data, length );
+//#define MCP_read( rdAddress, data, length ) I2C_read( BUSADDR_MCP23018, rdAddress, data, length );
+//#define MCP_write( wrAddress, data, length ) I2C_write( BUSADDR_MCP23018, wrAddress, data, length );
 
+int8_t MCP_read( uint32_t rdAddress, char *data, uint8_t length );
+int8_t MCP_write( uint32_t wrAddress, char *data, uint8_t length );
 void MCP_init( void );
 
 #define MCP_IODIRA				0x00

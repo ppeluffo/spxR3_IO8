@@ -12,7 +12,7 @@ static void pv_tkOutputs_init(void);
 void pv_set_hwoutputs(void);
 
 uint8_t o_control;
-static uint16_t o_timer, o_timer_boya;
+static uint16_t o_timer, o_timer_boya, o_timer_sistema;
 #define TIMEOUT_O_TIMER			600
 #define TIMEOUT_O_TIMER_BOYA	 60
 
@@ -34,6 +34,7 @@ void tkOutputs(void * pvParameters)
 	// Control de las salidas
 	o_control = CTL_BOYA;
 	o_timer = 0;
+	o_timer_sistema = 15;
 
 	xprintf_P( PSTR("starting tkOutputs..\r\n\0"));
 
@@ -75,6 +76,18 @@ void tkOutputs(void * pvParameters)
 
 				// Arranco el timer de las boyas
 				RELOAD_TIMER_BOYA();
+			}
+
+			// Cuando el modem esta prendido no hago nada ya que las salidas las maneja el server
+			if ( pub_modem_prendido() ) {
+				o_timer_sistema = 15;		// reseteo el timer
+			} else {
+				// Con el modem apagado.
+				if ( o_timer_sistema-- == 0 ) {		// disminuyo el timer
+					o_timer_sistema = 15;
+					pv_set_hwoutputs();
+					xprintf_P( PSTR("OUTPUT reload: Sistema con modem apagado)\r\n\0"));
+				}
 			}
 			break;
 
@@ -135,7 +148,12 @@ void pv_set_hwoutputs(void)
 {
 	// Pone el valor de systemVars.d_outputs en los pines de la salida
 
-	IO_reflect_DOUTPUTS(systemVars.d_outputs);
+int8_t ret_code;
+
+	ret_code = IO_reflect_DOUTPUTS(systemVars.d_outputs);
+	if ( ret_code == -1 ) {
+		xprintf_P( PSTR("I2C ERROR pv_set_hwoutputs\r\n\0"));
+	}
 	xprintf_P( PSTR("tkOutputs: SET [0x%02x][%c%c%c%c%c%c%c%c]\r\n\0"), systemVars.d_outputs,  BYTE_TO_BINARY( systemVars.d_outputs ) );
 }
 //------------------------------------------------------------------------------------

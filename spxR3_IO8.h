@@ -59,7 +59,7 @@
 // DEFINES
 //------------------------------------------------------------------------------------
 #define SPX_FW_REV "0.1.8"
-#define SPX_FW_DATE "@ 20190522"
+#define SPX_FW_DATE "@ 20190523"
 
 #define SPX_HW_MODELO "spxR3_IO8 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10"
@@ -247,6 +247,7 @@ void pub_data_load_defaults(void);
 
 // tkGprs
 void pub_gprs_load_defaults(void);
+bool pub_modem_prendido(void);
 
 // tkOutputs
 void pub_output_load_defaults(void);

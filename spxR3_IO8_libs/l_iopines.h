@@ -208,9 +208,9 @@ uint8_t IO_read_RI(void);
 // IO data pines
 
 int8_t IO_read_DIN( uint8_t pin);
-void IO_set_DOUT(uint8_t pin);
-void IO_clr_DOUT(uint8_t pin);
-void IO_reflect_DOUTPUTS(uint8_t output_value );
+int8_t IO_set_DOUT(uint8_t pin);
+int8_t IO_clr_DOUT(uint8_t pin);
+int8_t IO_reflect_DOUTPUTS(uint8_t output_value );
 
 //------------------------------------------------------------------------------------
 

@@ -121,12 +121,17 @@ uint8_t i2c_error_code;
 		xReturn = -1 ;
 	}
 
+	// Si active las salidas del MCP, estas generan mucho ruido por lo que conviene esperar
+	// antes de devolver el bus de modo que nadie lo use hasta que terminen los transitorios
+	if ( i2c_bus_address == BUSADDR_MCP23018 ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
+
 	frtos_ioctl(fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 	return(xReturn);
 
 }
 //------------------------------------------------------------------------------------
-
 uint8_t pv_i2_addr_2_idx( uint8_t i2c_bus_address )
 {
 	switch( i2c_bus_address ) {
@@ -156,4 +161,8 @@ uint8_t pv_i2_addr_2_idx( uint8_t i2c_bus_address )
 
 }
 //------------------------------------------------------------------------------------
-
+int8_t I2C_get_bus_status(void)
+{
+	return(	frtos_ioctl(fdI2C, ioctl_I2C_GET_LAST_ERROR, NULL ) );
+}
+//------------------------------------------------------------------------------------

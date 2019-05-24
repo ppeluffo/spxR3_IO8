@@ -1111,11 +1111,17 @@ static void pv_cmd_wDOUTPUT(void)
 	// Escribe un 0 o un 1 en una de las salidas digitales.
 
 uint8_t pin;
+int8_t ret_code;
 
 	pin = atoi(argv[2]);
 
 	if (!strcmp_P( strupr(argv[3]), PSTR("SET\0"))) {
-		IO_set_DOUT(pin);
+		ret_code = IO_set_DOUT(pin);
+		if ( ret_code == -1 ) {
+			// Error de bus
+			xprintf_P( PSTR("wDOUTPUT: I2C bus error(1)\n\0"));
+			return;
+		}
 		// Actualizo el systemVars.
 		systemVars.d_outputs |= ( 1 << ( 7 - pin )  );
 
@@ -1124,7 +1130,13 @@ uint8_t pin;
 	}
 
 	if (!strcmp_P( strupr(argv[3]), PSTR("CLEAR\0"))) {
-		IO_clr_DOUT(pin);
+		ret_code = IO_clr_DOUT(pin);
+		if ( ret_code == -1 ) {
+			// Error de bus
+			xprintf_P( PSTR("wDOUTPUT: I2C bus error(2)\n\0"));
+			return;
+		}
+
 		// Actualizo el systemVars.
 		systemVars.d_outputs &= ~( 1 << ( 7 - pin ) );
 
